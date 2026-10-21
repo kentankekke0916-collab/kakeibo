@@ -462,6 +462,9 @@ a { color: var(--accent); font-weight: 700; }
     EXPENSE.forEach(function (c) { lines.push(c + "\t" + (t.by[c] || 0)); });
     return lines.join("\n");
   }
+  function handoff(key) {
+    try { var p = state.ym.split("-"); localStorage.setItem(key, JSON.stringify({ text: diagText(state.ym), label: p[0] + "年" + (+p[1]) + "月", at: Date.now() })); } catch (e) {}
+  }
   function renderSum() {
     var list = monthEntries(state.ym), t = totals(list), sp = list.filter(function (e) { return e.special; });
     var max = Math.max.apply(null, EXPENSE.map(function (c) { return t.by[c] || 0; }).concat([1]));
@@ -480,8 +483,12 @@ a { color: var(--accent); font-weight: 700; }
       '<p>この月の収入4項目・支出15項目の合計を、スプレッドシートにそのまま貼れる形でコピーするよ。' + (sp.length ? '特別な支出 ' + sp.length + '件（' + yen(sp.reduce(function (s, e) { return s + e.amount; }, 0)) + '）は外してある。' : '') + '</p>' +
       '<button class="btn orange full" id="copyDiag">集計をコピーする</button>' +
       '<details><summary class="muted">コピーされる中身を見る</summary><pre class="out" id="copyOut">' + esc(diagText(state.ym)) + '</pre></details>' +
-      '<p class="muted">家計の見直しに使うなら、月末か1か月分そろってからがおすすめ。</p></div>';
+      '<p class="muted">家計の見直しに使うなら、月末か1か月分そろってからがおすすめ。</p></div>' +
+      '<div class="card"><h2>伸びしろ診断で見直す</h2><p>この月の集計を「ケンティーの伸びしろ診断」に渡して、まだ見直せるところと次の一歩を見てみよう。</p>' +
+      '<a class="btn full" id="goDiag" href="https://kentankekke0916-collab.github.io/kakeibo/kentee/shindan/" style="display:block;text-align:center;text-decoration:none">伸びしろ診断に渡す</a>' +
+      '<p class="muted">診断で質問に答えると、収支を入れる画面に「家計簿ケンティーから読み込む」ボタンが出るよ。</p></div>';
     app.innerHTML = html;
+    var gd = document.getElementById("goDiag"); if (gd) gd.addEventListener("click", function () { handoff("kentee-handoff"); });
     bind("copyDiag", function () { copy(diagText(state.ym), "集計をコピーしたよ"); });
   }
 

@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F1F8FC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="伸びしろ診断">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>ケンティーの伸びしろ診断</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 1カラムのステップ式。上に進捗、中央に1問ずつのカード、結果は縦スクロールの4セクション */
+:root {
+  --bg: #F1F8FC;
+  --surface: #FFFFFF;
+  --fg: #1B2B36;
+  --muted: #5A6E7B;
+  --line: #D3E5EF;
+  --accent: #1A78A8;
+  --accent-soft: #DDF0FA;
+  --gold: #3F8A36;
+  --gold-soft: #E4F2DC;
+  --warn: #C2452D;
+  --warn-soft: #F9E1DA;
+  --good: #1F7A8C;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1A21; --surface: #16242D; --fg: #E4EEF3; --muted: #9AB0BD; --line: #27394A;
+    --accent: #62B9E6; --accent-soft: #1A3546; --gold: #8FD07C; --gold-soft: #22361C;
+    --warn: #EE8A72; --warn-soft: #3D2420; --good: #6FC6D6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1A21; --surface: #16242D; --fg: #E4EEF3; --muted: #9AB0BD; --line: #27394A;
+  --accent: #62B9E6; --accent-soft: #1A3546; --gold: #8FD07C; --gold-soft: #22361C;
+  --warn: #EE8A72; --warn-soft: #3D2420; --good: #6FC6D6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.7; }
+.wrap { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 64px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.35; margin: 0; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); font-size: 0.88rem; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand-name { font-family: var(--font-display); font-weight: 700; color: var(--gold); letter-spacing: 0.04em; font-size: 0.95rem; }
+.privacy { font-size: 0.78rem; color: var(--muted); }
+.progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; display: flex; flex-direction: column; gap: 16px; }
+.qlabel { font-size: 0.8rem; color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
+.qhint { font-size: 0.88rem; color: var(--muted); }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.opt { font: inherit; text-align: left; padding: 14px 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; transition: border-color .15s, background .15s; }
+.opt:hover { border-color: var(--accent); }
+.opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.opt:focus-visible, .btn:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row.end { justify-content: space-between; }
+.btn { font: inherit; font-weight: 700; padding: 12px 22px; border-radius: 99px; border: none; background: var(--accent); color: var(--surface); cursor: pointer; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.link { background: none; color: var(--muted); padding: 12px 4px; font-weight: 500; }
+.field { display: flex; align-items: center; gap: 8px; }
+.field input { font: inherit; font-size: 1.1rem; width: 100%; max-width: 220px; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); text-align: right; }
+.unit { color: var(--muted); }
+.steps { display: grid; gap: 12px; }
+.step { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+.step b { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-family: var(--font-display); }
+.sample-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; color: var(--gold); background: var(--gold-soft); padding: 2px 10px; border-radius: 99px; }
+/* 収支入力 */
+.ledger { display: grid; gap: 4px; }
+.ledger-head { font-family: var(--font-display); font-weight: 700; padding-block: 10px 4px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
+.lrow { display: grid; grid-template-columns: 1fr 140px; gap: 10px; align-items: center; padding-block: 4px; }
+.lrow label { font-size: 0.95rem; }
+.lrow input { font: inherit; width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); text-align: right; font-variant-numeric: tabular-nums; }
+.paste textarea { font: inherit; font-size: 0.85rem; width: 100%; min-height: 90px; padding: 10px; border-radius: 10px; border: 1.5px dashed var(--line); background: var(--bg); color: var(--fg); }
+details.paste summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+details.paste[open] { display: flex; flex-direction: column; gap: 10px; }
+.notice { font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); color: var(--fg); }
+.notice.warn { background: var(--warn-soft); }
+/* 結果 */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi .v { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.kpi .l { font-size: 0.78rem; color: var(--muted); }
+.pill { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+.pill.ok { background: var(--accent-soft); color: var(--good); }
+.pill.over { background: var(--warn-soft); color: var(--warn); }
+.pill.hold { background: var(--gold-soft); color: var(--gold); }
+.bars { display: grid; gap: 14px; }
+.bar-item { display: grid; gap: 4px; }
+.bar-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; flex-wrap: wrap; }
+.bar-track { position: relative; height: 10px; background: var(--line); border-radius: 99px; }
+.bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: var(--accent); }
+.bar-fill.over { background: var(--warn); }
+.bar-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--fg); border-radius: 2px; }
+.bar-note { font-size: 0.8rem; color: var(--muted); }
+.legend { display: flex; gap: 16px; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ba > div { padding: 14px; border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ba > div.after { background: var(--accent-soft); }
+.ba .big { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+td.down { color: var(--good); font-weight: 700; }
+tr.total td { font-weight: 700; border-bottom: none; }
+.future { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.future div { display: flex; flex-direction: column; gap: 2px; }
+.future .big { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.actions { display: grid; gap: 12px; counter-reset: act; }
+.action { display: grid; grid-template-columns: 40px 1fr; gap: 12px; padding: 14px; border-radius: 12px; border: 1.5px solid var(--line); }
+.action:first-child { border-color: var(--accent); }
+.action .n { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--surface); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+.action h3 { margin-bottom: 2px; }
+.action.chosen { border-color: var(--gold); background: var(--gold-soft); }
+.action:first-child { border-color: var(--line); }
+.act-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; align-items: flex-start; }
+.first-step { font-size: 0.92rem; padding: 8px 10px; background: var(--bg); border-radius: 8px; align-self: stretch; }
+.pick { padding: 8px 18px; font-size: 0.9rem; }
+.commit { border: 2px solid var(--gold); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--gold-soft); }
+.commit .qlabel { color: var(--gold); }
+.cover { display: grid; grid-template-columns: 1fr 160px; gap: 12px; align-items: end; }
+.cover img { width: 100%; height: auto; display: block; }
+.cover-band { background: linear-gradient(180deg, var(--accent-soft), var(--surface)); border-radius: 12px; padding: 18px 16px 0; margin: -6px -4px 0; }
+.disclaimer { font-size: 0.78rem; color: var(--muted); padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; line-height: 1.7; }
+.hl { color: var(--gold); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 0.78rem; padding: 2px 10px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
+@media (max-width: 460px) {
+  .cover { grid-template-columns: 1fr 112px; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .kpi:last-child { grid-column: span 2; }
+  .lrow { grid-template-columns: 1fr 120px; }
+  .ba, .future { grid-template-columns: 1fr; }
+  h1 { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- マスタ（家計簿ケンティーと同じ並び） ----
+  var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
+  var EXPENSE = ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "教養・教育", "健康・医療", "水道光熱費", "通信費", "住宅（家賃など）", "保険", "自動車", "税・社会保障", "その他"];
+
+  // ---- ヒアリング項目 ----
+  var QUESTIONS = [
+    { id: "age", q: "年代を教えてね", type: "single", opts: ["20代", "30代", "40代", "50代以上"] },
+    { id: "family", q: "家族構成は？", type: "single", opts: ["ひとり暮らし・独身", "夫婦・パートナーと2人", "子どもがいる"] },
+    { id: "kids", q: "子どもは何人？", type: "single", opts: ["1人", "2人", "3人以上"], when: function (a) { return a.family === "子どもがいる"; } },
+    { id: "kidAge", q: "一番上の子は今どのくらい？", hint: "教育費の目安を切り替えるのに使うよ", type: "single", opts: ["未就学", "小学生", "中学生", "高校生以上"], when: function (a) { return a.family === "子どもがいる"; } },
+    { id: "work", q: "あなたの働き方は？", type: "single", opts: ["会社員", "公務員", "自営業・フリーランス", "パート・アルバイト"] },
+    { id: "home", q: "住まいは？", type: "single", opts: ["賃貸", "持ち家（ローン返済中）", "持ち家（ローンなし）", "実家暮らし"] },
+    { id: "region", q: "住んでいるエリアは？", type: "single", opts: ["都市部", "地方"] },
+    { id: "car", q: "車は持ってる？", type: "single", opts: ["持っている", "持っていない"] },
+    { id: "savings", q: "今の貯金はだいたいいくら？", hint: "普通預金・定期預金の合計。投資の分は入れなくてOK", type: "number", unit: "万円" },
+    { id: "invest", q: "毎月の先取り貯金・積立投資はいくら？", hint: "NISA・iDeCo・先取り貯金の合計。支出には入れず、余剰資金の中から出している前提だよ", type: "number", unit: "円/月" },
+    { id: "debt", q: "今ある借入をすべて選んでね", type: "multi", opts: ["リボ払い", "カードローン", "奨学金", "車のローン", "なし"] },
+    { id: "goals", q: "これから叶えたいことは？", hint: "いくつでも選んでOK", type: "multi", opts: ["教育費の準備", "住宅購入", "老後資金", "旅行・趣味", "転職・起業", "まだ決まっていない"] },
+    { id: "done", q: "もう見直し済みの項目は？", hint: "すでに見直した項目は、今回の改善候補から外すよ", type: "multi", opts: EXPENSE.filter(function (k) { return k !== "税・社会保障"; }).concat(["まだない"]) },
+    { id: "keep", q: "大切にしたい支出は？", hint: "ここは削る候補から外すよ。罪悪感なく使っていいお金だからね", type: "multi", opts: EXPENSE.filter(function (k) { return k !== "税・社会保障"; }).concat(["特にない"]) },
+    { id: "fee", q: "毎月あといくら、自由に使えるお金を作りたい？", hint: "見直しでその金額に届くかを計算するよ。決まっていなければ0のままでOK", type: "number", unit: "円/月" },
+    { id: "scope", q: "このあと入れる収支は誰の分？", hint: "パートナーの分も合わせて入れる人は「世帯の合計」を選んでね", type: "single", opts: ["自分の分だけ", "世帯の合計"], when: function (a) { return a.family !== "ひとり暮らし・独身"; } }
+  ];
+
+  // ---- 目安（手取りに対する比率%）。一般的な目安 ----
+  var EASE = { "通信費": 1, "趣味・娯楽": .9, "保険": .8, "水道光熱費": .6, "食費": .6, "日用品": .6, "交際費": .5, "衣服・美容": .5, "その他": .5, "交通費": .4, "自動車": .3, "住宅（家賃など）": .2, "教養・教育": .2, "健康・医療": .2, "税・社会保障": 0 };
+  // [やること, 理由, 最初の一歩]
+  var ACTION_TEXT = {
+    "通信費": ["スマホ代を格安プランに見直す", "大手キャリアなら格安SIMや家族割で1人月3,000円前後まで下げられることが多いよ。", "今日：今月の明細で「プラン名・データ使用量・月額」を確認する"],
+    "趣味・娯楽": ["サブスクを整理する", "動画・音楽・Adobeなどのアプリは、プラン変更や解約だけで毎月の支出が下がるよ。見直しの効果が出やすいところ。", "今日：スマホのサブスクリプション画面を開いて、この1か月使っていないものを1つ解約する"],
+    "保険": ["保険の中身を棚卸しする", "保障の重複や使っていない特約がないかを確認しよう。車の任意保険はネット型に変えるだけで下がることも多いよ。", "今週：保険証券を全部出して「何の保障・月額・満期」を1枚に書き出し、重なっている保障がないか確かめる"],
+    "水道光熱費": ["電気・ガスの料金プランを比べる", "使う量はそのままで、契約先やプランを変えるだけで下がることがあるよ。", "今週：検針票の使用量を比較サイトに入れて、乗り換え後の金額を見る"],
+    "食費": ["コンビニに寄らない仕組みを作る", "我慢より、買う頻度と生活動線を変える方が続くよ。水筒やお弁当の持参も効果的。", "明日：コンビニに寄らない日を決めて、水筒を持って出かける"],
+    "日用品": ["日用品のストック上限を決める", "まとめ買いの日を決めて、買い置きは1つまでにするだけでも減るよ。", "今週：家のストックを確認して、買い物リストを作ってから出かける"],
+    "交際費": ["交際費を月の予算制にする", "月初に使っていい金額を決めておくと、誘いを罪悪感なく選べるよ。", "今日：今月の交際費の予算を決めて、スマホのメモに書いておく"],
+    "衣服・美容": ["欲しいものを一旦寝かせる", "欲しくなったら数日置いてから買うかを決めるだけで、衝動買いが減るよ。", "今日：カートやお気に入りに入っているものを見直して、寝かせるルールを決める"],
+    "その他": ["使い道の分からないお金を追いかける", "「その他」の正体が分かると、次に見直す場所が見えてくるよ。", "今日から：家計簿ケンティーで1週間だけ全部記録してみる"],
+    "交通費": ["移動手段と定期を見直す", "タクシーや近距離の電車をまとめて見直すと効くことが多いよ。", "今週：先月のタクシー・交通系ICの利用履歴を確認する"],
+    "自動車": ["車の維持費を分解してみる", "任意保険をネット型に変えるだけで下がることも多いよ。", "今週：任意保険の更新月と保険料を確認して、ネット型の見積もりを1つ取る"],
+    "住宅（家賃など）": ["次の更新で住居費を見直す", "すぐ動かなくてOK。更新や住み替えのタイミングで目安の家賃を意識しよう。", "次の更新月をカレンダーに入れておく"],
+    "教養・教育": ["教育費の内訳を確認する", "習い事や塾の数と目的を家族で一度話してみよう。", "今週：習い事・教材の月額を一覧にする"],
+    "健康・医療": ["医療費の制度を確認する", "医療費控除や高額療養費制度が使えるかチェックしてみよう。", "今週：去年の医療費の領収書をまとめて合計を出す"]
+  };
+
+  function targets(a) {
+    var kids = a.family === "子どもがいる", couple = a.family === "夫婦・パートナーと2人";
+    var t = {
+      "食費": kids ? 16 : couple ? 15 : 14,
+      "日用品": 3,
+      "趣味・娯楽": kids ? 3 : couple ? 4 : 5,
+      "交際費": kids ? 2 : couple ? 3 : 4,
+      "交通費": 3,
+      "衣服・美容": kids ? 3 : 4,
+      "教養・教育": !kids ? 3 : ({ "未就学": 4, "小学生": 6, "中学生": 8, "高校生以上": 10 })[a.kidAge] || 6,
+      "健康・医療": 2,
+      "水道光熱費": kids ? 6 : 5,
+      "通信費": 3,
+      "住宅（家賃など）": ({ "賃貸": 25, "持ち家（ローン返済中）": 25, "持ち家（ローンなし）": 8, "実家暮らし": 10 })[a.home] || 25,
+      "保険": kids ? 7 : couple ? 6 : 5,
+      "自動車": a.car === "持っている" ? (a.region === "地方" ? 9 : 7) : 0,
+      "税・社会保障": null,
+      "その他": 2
+    };
+    if (a.car === "持っている" && a.region === "地方") t["交通費"] = 2;
+    return t;
+  }
+  function savingTarget(a) {
+    if (a.home === "実家暮らし") return 30;
+    if (a.age === "50代以上") return 25;
+    if (a.family === "子どもがいる") return 15;
+    return 20;
+  }
+  function emergencyMonths(a) {
+    return (a.family === "子どもがいる" || a.work === "自営業・フリーランス") ? 12 : 6;
+  }
+
+  // ---- 状態 ----
+  var SAMPLE = {
+    answers: { age: "30代", family: "子どもがいる", kids: "1人", kidAge: "小学生", work: "会社員", home: "賃貸", region: "都市部", car: "持っていない", savings: 150, invest: 10000, debt: ["リボ払い"], goals: ["教育費の準備", "老後資金"], done: ["通信費"], keep: ["趣味・娯楽"], fee: 20000, scope: "世帯の合計" },
+    income: { "給与（手取り）": 380000, "事業（副業）収入（手取り）": 20000 },
+    expense: { "食費": 75000, "日用品": 15000, "趣味・娯楽": 25000, "交際費": 12000, "交通費": 8000, "衣服・美容": 20000, "教養・教育": 18000, "健康・医療": 5000, "水道光熱費": 22000, "通信費": 24000, "住宅（家賃など）": 120000, "保険": 32000, "その他": 15000 }
+  };
+  var state = { screen: "intro", qi: 0, answers: {}, income: {}, expense: {}, sample: false, chosen: null };
+  try { var saved = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (saved && saved.answers) { state.answers = saved.answers; state.income = saved.income || {}; state.expense = saved.expense || {}; } } catch (e) {}
+  function save() { if (state.sample) return; try { localStorage.setItem("kentee-nobishiro-draft", JSON.stringify({ answers: state.answers, income: state.income, expense: state.expense })); } catch (e) {} }
+
+  var DISCLAIMER = "本診断は、ご回答内容に基づくシミュレーションです。診断結果やアドバイス、表示される削減額はあくまで目安であり、実際の削減額を保証するものではありません。ご自身の生活状況や大切にしたい支出に合わせて、家計を見直すヒントとしてご活用ください。";
+  var app = document.getElementById("app");
+  function yen(n) { return "¥" + Math.round(n).toLocaleString("ja-JP"); }
+  function man(n) { return (Math.round(n / 1000) / 10).toLocaleString("ja-JP") + "万円"; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function sum(o) { var s = 0; for (var k in o) s += Number(o[k]) || 0; return s; }
+  function visibleQs() { return QUESTIONS.filter(function (q) { return !q.when || q.when(state.answers); }); }
+
+  function header(progress) {
+    return '<div class="brand"><span class="brand-name">ケンティーの伸びしろ診断</span>' +
+      (state.sample ? '<span class="sample-tag">サンプルデータ</span>' : '<span class="privacy">入力内容は送信されません</span>') + '</div>' +
+      (progress != null ? '<div class="progress" aria-hidden="true"><i style="width:' + progress + '%"></i></div>' : "");
+  }
+
+  // ---- 画面: はじめに ----
+  function renderIntro() {
+    var hasDraft = Object.keys(state.answers).length > 0;
+    app.innerHTML = header(null) +
+      '<div class="card">' +
+      '<div class="cover-band"><h1 style="padding-bottom:18px">あなたの家計、<br><span class="hl" style="white-space:nowrap">どこに伸びしろ</span><br>がある？</h1></div>' +
+      '<p>1か月の収支と、いくつかの質問への答えから、すでに見直したところや大切にしたい支出は残したまま、まだ見直せそうなところと、毎月の余剰資金をどれだけ増やせるかを一緒に見ていくよ。所要時間は5分くらい。</p>' +
+      '<div class="steps">' +
+      '<div class="step"><b>1</b><div><h3>あなたのことを教えて</h3><p class="muted">年代や家族構成で、理想の家計バランスは変わるからね</p></div></div>' +
+      '<div class="step"><b>2</b><div><h3>1か月の収支を入れる</h3><p class="muted">家計簿ケンティーを使っていれば、ワンタップで読み込めるよ</p></div></div>' +
+      '<div class="step"><b>3</b><div><h3>伸びしろと次の一歩が分かる</h3><p class="muted">毎月の余剰資金がいくら増えるかと、今月やることを1つ決めるよ</p></div></div>' +
+      '</div>' +
+      '<div class="row"><button class="btn" id="start">' + (hasDraft ? "続きからはじめる" : "はじめる") + '</button>' +
+      '<button class="btn ghost" id="sample">サンプルで結果を見る</button></div>' +
+      (hasDraft ? '<button class="btn link" id="reset">最初からやり直す</button>' : "") +
+      '<p class="privacy">計算はすべてこの端末のブラウザの中で行われ、入力した数字がどこかに送られることはありません。</p>' +
+      '<p class="disclaimer">' + DISCLAIMER + '</p>' +
+      '</div>';
+    document.getElementById("start").onclick = function () { state.sample = false; state.screen = "q"; state.qi = 0; render(); };
+    document.getElementById("sample").onclick = function () {
+      state.sample = true; state.answers = JSON.parse(JSON.stringify(SAMPLE.answers));
+      state.income = Object.assign({}, SAMPLE.income); state.expense = Object.assign({}, SAMPLE.expense);
+      state.chosen = null; state.screen = "result"; render();
+    };
+    var r = document.getElementById("reset");
+    if (r) r.onclick = function () { state.answers = {}; state.income = {}; state.expense = {}; try { localStorage.removeItem("kentee-nobishiro-draft"); } catch (e) {} render(); };
+  }
+
+  // ---- 画面: 質問 ----
+  function renderQuestion() {
+    var qs = visibleQs();
+    if (state.qi >= qs.length) { state.screen = "ledger"; return render(); }
+    var q = qs[state.qi], a = state.answers[q.id];
+    var total = qs.length + 1;
+    var body = "";
+    if (q.type === "single" || q.type === "multi") {
+      body = '<div class="opts" role="group" aria-label="' + esc(q.q) + '">' + q.opts.map(function (o, i) {
+        var on = q.type === "multi" ? (a || []).indexOf(o) >= 0 : a === o;
+        return '<button class="opt" id="opt-' + q.id + '-' + i + '" data-v="' + esc(o) + '" aria-pressed="' + on + '">' + esc(o) + '</button>';
+      }).join("") + '</div>';
+    } else {
+      body = '<div class="field"><input id="in-' + q.id + '" type="number" inputmode="numeric" min="0" placeholder="0" value="' + (a != null ? a : "") + '"><span class="unit">' + q.unit + '</span></div>';
+    }
+    app.innerHTML = header((state.qi / total) * 100) +
+      '<div class="card">' +
+      '<span class="qlabel">質問 ' + (state.qi + 1) + ' / ' + total + '</span>' +
+      '<h2>' + esc(q.q) + '</h2>' + (q.hint ? '<p class="qhint">' + esc(q.hint) + '</p>' : "") +
+      body +
+      '<div class="row end"><button class="btn link" id="back">もどる</button>' +
+      (q.type !== "single" ? '<button class="btn" id="next">次へ</button>' : "") + '</div>' +
+      '</div>';
+    document.getElementById("back").onclick = function () { if (state.qi === 0) state.screen = "intro"; else state.qi--; render(); };
+    if (q.type === "single") {
+      app.querySelectorAll(".opt").forEach(function (b) { b.onclick = function () { state.answers[q.id] = b.dataset.v; save(); state.qi++; render(); }; });
+    } else if (q.type === "multi") {
+      var nextBtn = document.getElementById("next");
+      var cur = (a || []).slice(); nextBtn.disabled = cur.length === 0;
+      app.querySelectorAll(".opt").forEach(function (b) {
+        b.onclick = function () {
+          var v = b.dataset.v, exclusive = /なし|まだ決まっていない|まだない|特にない/.test(v);
+          var i = cur.indexOf(v);
+          if (i >= 0) cur.splice(i, 1);
+          else { cur = exclusive ? [v] : cur.filter(function (x) { return !/なし|まだ決まっていない|まだない|特にない/.test(x); }); if (!exclusive) cur.push(v); }
+          app.querySelectorAll(".opt").forEach(function (x) { x.setAttribute("aria-pressed", cur.indexOf(x.dataset.v) >= 0); });
+          nextBtn.disabled = cur.length === 0;
+        };
+      });
+      nextBtn.onclick = function () { state.answers[q.id] = cur; save(); state.qi++; render(); };
+    } else {
+      var inp = document.getElementById("in-" + q.id);
+      document.getElementById("next").onclick = function () { state.answers[q.id] = Math.max(0, Number(inp.value) || 0); save(); state.qi++; render(); };
+      inp.addEventListener("keydown", function (e) { if (e.key === "Enter") document.getElementById("next").click(); });
+    }
+  }
+
+  // ---- シートからの貼り付けを読む ----
+  function parsePaste(text) {
+    var labelMap = {};
+    INCOME.forEach(function (l) { labelMap[l] = ["income", l]; });
+    labelMap["その他"] = null; // 収入・支出の両方にあるので位置で判定
+    EXPENSE.forEach(function (l) { if (l !== "その他") labelMap[l] = ["expense", l]; });
+    var inc = {}, exp = {}, blocks = [], found = 0;
+    text.split(/\r?\n/).forEach(function (line) {
+      var cells = line.split("\t").map(function (c) { return c.trim(); });
+      cells.forEach(function (c, i) { var m = c.match(/【収入・(.+?)】/); if (m) blocks.push(m[1]); });
+      cells.forEach(function (c, i) {
+        var key = c, target = null;
+        if (key === "その他") {
+          // 同じ行の後ろに支出の項目名があれば収入側の「その他」
+          var expenseAfter = cells.slice(i + 1).some(function (x) { return EXPENSE.indexOf(x) >= 0; });
+          target = expenseAfter ? ["income", "その他収入"] : ["expense", "その他"];
+        }
+        else if (labelMap[key]) target = labelMap[key];
+        if (!target) return;
+        var raw = (cells[i + 1] || "").replace(/[^\d.-]/g, "");
+        if (raw === "" || isNaN(Number(raw))) return;
+        var bucket = target[0] === "income" ? inc : exp;
+        bucket[target[1]] = (bucket[target[1]] || 0) + Number(raw); found++;
+      });
+    });
+    return { income: inc, expense: exp, blocks: blocks, found: found };
+  }
+
+  // ---- 画面: 収支入力 ----
+  function readHandoff() { try { var h = JSON.parse(localStorage.getItem("kentee-handoff") || "null"); return h && h.text ? h : null; } catch (e) { return null; } }
+  function renderLedger(msg) {
+    var handoff = readHandoff();
+    var total = visibleQs().length + 1;
+    var who = state.answers.scope === "世帯の合計" ? "世帯の合計" : "あなた";
+    function rows(list, bucket, prefix) {
+      return list.map(function (l, i) {
+        var v = state[bucket][l];
+        return '<div class="lrow"><label for="' + prefix + i + '">' + esc(l) + '</label><input id="' + prefix + i + '" data-b="' + bucket + '" data-k="' + esc(l) + '" type="number" inputmode="numeric" min="0" placeholder="0" value="' + (v ? v : "") + '"></div>';
+      }).join("");
+    }
+    app.innerHTML = header(((total - 1) / total) * 100) +
+      '<div class="card">' +
+      '<span class="qlabel">質問 ' + total + ' / ' + total + '</span>' +
+      '<h2>1か月の収支を入れてね</h2>' +
+      '<p class="qhint">' + who + 'の1か月分を、この15項目で入れてね。空欄は0円として計算するよ。</p>' +
+      '<details class="paste"><summary>コピーした集計をまとめて貼り付ける</summary>' +
+      '<p class="muted">家計簿ケンティーの「集計」で「集計をコピーする」を押して、下に貼り付けてね。スプレッドシートから「項目名」と「金額」の2列をコピーして貼ってもOK。</p>' +
+      '<textarea id="pastebox" placeholder="ここに貼り付け"></textarea>' +
+      '<div class="row"><button class="btn ghost" id="readpaste">読み込む</button></div></details>' +
+      (handoff ? '<div class="notice"><p>家計簿ケンティーから渡された ' + esc(handoff.label) + ' の集計があるよ。</p><div class="row" style="margin-top:8px"><button class="btn" id="fromapp">家計簿ケンティーから読み込む</button></div></div>' : "") +
+      (msg ? '<div class="notice' + (msg.warn ? " warn" : "") + '">' + esc(msg.text) + '</div>' : "") +
+      '<div class="ledger"><div class="ledger-head"><span>収入（手取り）</span><span class="num" id="inc-sum"></span></div>' + rows(INCOME, "income", "inc-") + '</div>' +
+      '<div class="ledger"><div class="ledger-head"><span>支出</span><span class="num" id="exp-sum"></span></div>' + rows(EXPENSE, "expense", "exp-") + '</div>' +
+      '<div class="row end"><button class="btn link" id="back">もどる</button><button class="btn" id="go">診断する</button></div>' +
+      '</div>';
+    function refresh() { document.getElementById("inc-sum").textContent = yen(sum(state.income)); document.getElementById("exp-sum").textContent = yen(sum(state.expense)); }
+    refresh();
+    app.querySelectorAll(".lrow input").forEach(function (inp) {
+      inp.addEventListener("input", function () { state[inp.dataset.b][inp.dataset.k] = Math.max(0, Number(inp.value) || 0); refresh(); save(); });
+    });
+    var fa = document.getElementById("fromapp");
+    if (fa) fa.onclick = function () {
+      var r = parsePaste(handoff.text);
+      if (!r.found) return renderLedger({ warn: true, text: "うまく読み込めなかったよ。家計簿でもう一度「診断に渡す」を押してみてね。" });
+      state.income = r.income; state.expense = r.expense; save();
+      renderLedger({ text: handoff.label + "の集計を読み込んだよ。数字が合っているか確認してね。" });
+    };
+    document.getElementById("readpaste").onclick = function () {
+      var r = parsePaste(document.getElementById("pastebox").value);
+      if (!r.found) return renderLedger({ warn: true, text: "数字が読み取れなかったよ。項目名の列と金額の列が両方入るように範囲を選んでコピーしてみてね。" });
+      state.income = r.income; state.expense = r.expense; save();
+      renderLedger({ text: r.found + "項目を読み込んだよ" + (r.blocks.length > 1 ? "（" + r.blocks.join("・") + "の合計）" : "") + "。数字が合っているか確認してね。" });
+    };
+    document.getElementById("back").onclick = function () { state.screen = "q"; state.qi = visibleQs().length - 1; render(); };
+    document.getElementById("go").onclick = function () {
+      if (sum(state.income) <= 0) return renderLedger({ warn: true, text: "収入（手取り）を入れてね。診断はこの金額を基準に計算するよ。" });
+      state.chosen = null; state.screen = "result"; render(); window.scrollTo(0, 0);
+    };
+  }
+
+  // ---- 診断 ----
+  function diagnose() {
+    var a = state.answers, inc = sum(state.income), exp = sum(state.expense);
+    var t = targets(a), items = [], cut = 0, after = {};
+    var done = a.done || [], keep = a.keep || [];
+    EXPENSE.forEach(function (k) {
+      var cur = Number(state.expense[k]) || 0, pct = t[k];
+      var tgt = pct == null ? null : Math.round(inc * pct / 100 / 1000) * 1000;
+      var over = tgt != null && cur > tgt ? cur - tgt : 0;
+      var ease = EASE[k];
+      var excluded = done.indexOf(k) >= 0 ? "done" : keep.indexOf(k) >= 0 ? "keep" : null;
+      var applied = !excluded && over > 0 && ease >= .5 ? over : 0;
+      cut += applied; after[k] = cur - applied;
+      var status = tgt == null ? "skip" : excluded ? excluded : over === 0 ? "ok" : applied ? "over" : "hold";
+      items.push({ k: k, cur: cur, tgt: tgt, over: over, applied: applied, ease: ease, status: status });
+    });
+    var left = inc - exp, leftAfter = left + cut;
+    var monthlyExp = exp, emerTarget = emergencyMonths(a) * monthlyExp, emerNow = (Number(a.savings) || 0) * 10000;
+    var debt = (a.debt || []).filter(function (d) { return d !== "なし"; });
+    var invest = Number(a.invest) || 0;
+    var rate = inc ? ((left) / inc) * 100 : 0, rateAfter = inc ? (leftAfter / inc) * 100 : 0;
+
+    // 未着手の改善候補
+    var acts = [];
+    if (debt.indexOf("リボ払い") >= 0 || debt.indexOf("カードローン") >= 0) {
+      acts.push({ title: "リボ払い・カードローンの返済計画を立てる", body: "金利は年15%前後になることが多く、返すほど毎月の利息が減って余剰資金が増えるよ。", step: "今日：カードのアプリで残高と金利を確認して書き出す", gain: null });
+    }
+    items.filter(function (i) { return i.applied > 0; })
+      .sort(function (x, y) { return y.applied * y.ease - x.applied * x.ease; })
+      .forEach(function (i) { if (acts.length < 5) acts.push({ title: ACTION_TEXT[i.k][0], body: ACTION_TEXT[i.k][1], step: ACTION_TEXT[i.k][2], gain: i.applied, k: i.k }); });
+    if (acts.length < 3) {
+      acts.push({ title: "固定費の契約を一覧にする", body: "スマホ・保険・サブスク・電気ガスの契約先と月額を1枚にまとめると、次の見直しがすぐ始められるよ。", step: "今週：契約中のサービスと月額をスマホのメモに全部書き出す", gain: null });
+    }
+    if (acts.length < 3) {
+      acts.push({ title: "1か月だけ全部記録してみる", body: "思っていた数字とのズレを見ると、思わぬ伸びしろが見つかることが多いよ。", step: "今日から：家計簿ケンティーで1か月だけ全部記録する", gain: null });
+    }
+    var fee = Number(a.fee) || 0;
+    return { a: a, inc: inc, exp: exp, left: left, leftAfter: leftAfter, cut: cut, items: items, after: after, rate: rate, rateAfter: rateAfter, rateTarget: savingTarget(a), emerNow: emerNow, emerTarget: emerTarget, debt: debt, invest: invest, acts: acts, fee: fee, done: done.filter(function (k) { return EXPENSE.indexOf(k) >= 0; }), keep: keep.filter(function (k) { return EXPENSE.indexOf(k) >= 0; }) };
+  }
+
+  function fv(monthly, years, r) { var i = r / 12, n = years * 12; return i === 0 ? monthly * n : monthly * (Math.pow(1 + i, n) - 1) / i; }
+
+  // ---- 画面: 結果 ----
+  function renderResult() {
+    var d = diagnose(), a = d.a;
+    var profile = [a.age, a.family, a.kids ? "子ども" + a.kids : null, a.work, a.home, a.car === "持っている" ? "車あり" : "車なし", a.scope].filter(Boolean);
+    var maxV = Math.max.apply(null, d.items.map(function (i) { return Math.max(i.cur, i.tgt || 0); }).concat([1]));
+    var shown = d.items.filter(function (i) { return i.cur > 0 || (i.tgt && i.tgt > 0); });
+
+    var bars = shown.map(function (i) {
+      var w = (i.cur / maxV) * 100, m = i.tgt != null ? (i.tgt / maxV) * 100 : null;
+      var pill = i.status === "ok" ? '<span class="pill ok">目安内</span>' : i.status === "over" ? '<span class="pill over">月' + yen(i.over) + ' 見直せそう</span>' : i.status === "hold" ? '<span class="pill hold">中長期で検討</span>' : i.status === "done" ? '<span class="pill ok">見直し済み</span>' : i.status === "keep" ? '<span class="pill ok">大切にしたい支出</span>' : '<span class="pill ok">対象外</span>';
+      return '<div class="bar-item"><div class="bar-top"><span>' + esc(i.k) + ' <span class="num">' + yen(i.cur) + '</span></span>' + pill + '</div>' +
+        '<div class="bar-track"><div class="bar-fill' + (i.over && (i.status === "over" || i.status === "hold") ? " over" : "") + '" style="width:' + w + '%"></div>' + (m != null ? '<div class="bar-mark" style="left:calc(' + m + '% - 1px)" title="目安"></div>' : "") + '</div>' +
+        (i.tgt != null ? '<span class="bar-note num">目安 ' + yen(i.tgt) + '</span>' : '<span class="bar-note">税・社会保険料は削る対象にしないよ</span>') + '</div>';
+    }).join("");
+
+    var tableRows = EXPENSE.filter(function (k) { return (state.expense[k] || 0) > 0; }).map(function (k) {
+      var b = state.expense[k] || 0, af = d.after[k];
+      return '<tr><td>' + esc(k) + '</td><td>' + yen(b) + '</td><td' + (af < b ? ' class="down"' : "") + '>' + yen(af) + '</td></tr>';
+    }).join("");
+
+    var goals = (a.goals || []).filter(function (g) { return g !== "まだ決まっていない"; });
+    var leftWord = d.left >= 0 ? "毎月の余剰資金" : "毎月の不足額";
+
+    app.innerHTML = header(100) +
+      '<div class="card">' +
+      '<span class="qlabel">あなたの家計の現在地</span>' +
+      '<h2>' + (d.cut > 0 ? '見直すと、毎月の余剰資金を <span class="num">' + yen(d.cut) + '</span> 増やせそう' : '支出は目安の範囲に収まってるよ') + '</h2>' +
+      (d.fee > 0 && d.cut > 0 ? '<div class="notice">' + (d.cut >= d.fee ? '見直し額は月' + yen(d.cut) + '。作りたいお金（月' + yen(d.fee) + '）に<b>見直しだけで届く</b>計算だよ。' : '見直し額は月' + yen(d.cut) + 'で、作りたいお金（月' + yen(d.fee) + '）の <b class="num">' + Math.round(d.cut / d.fee * 100) + '%</b> に届く計算だよ。') + '</div>' : "") +
+      '<div class="chips">' + profile.map(function (p) { return '<span class="chip">' + esc(p) + '</span>'; }).join("") + '</div>' +
+      '<div class="kpis">' +
+      '<div class="kpi"><span class="l">手取り収入</span><span class="v">' + yen(d.inc) + '</span></div>' +
+      '<div class="kpi"><span class="l">支出合計</span><span class="v">' + yen(d.exp) + '</span></div>' +
+      '<div class="kpi"><span class="l">' + leftWord + '</span><span class="v" style="color:' + (d.left >= 0 ? "var(--fg)" : "var(--warn)") + '">' + yen(Math.abs(d.left)) + '</span></div>' +
+      '</div>' +
+      '<p>手取りのうち余剰資金になっている割合は <b class="num">' + d.rate.toFixed(1) + '%</b>。あなたの状況だと目安は <b class="num">' + d.rateTarget + '%</b> だよ。' +
+      (d.emerTarget > 0 ? ' 貯金は ' + man(d.emerNow) + ' で、生活防衛資金の目安（生活費' + emergencyMonths(a) + 'か月分 = ' + man(d.emerTarget) + '）の <b class="num">' + Math.min(100, Math.round(d.emerNow / d.emerTarget * 100)) + '%</b>。' : "") + '</p>' +
+      (d.debt.length ? '<div class="notice warn">借入：' + esc(d.debt.join("・")) + '</div>' : "") +
+      '</div>' +
+
+      '<div class="card"><span class="qlabel">項目ごとの見直し診断</span><h2>どこに伸びしろがある？</h2>' +
+      '<div class="legend"><span><i style="background:var(--accent)"></i>目安内</span><span><i style="background:var(--warn)"></i>目安オーバー</span><span><i style="background:var(--fg);width:3px"></i>あなたの目安</span></div>' +
+      '<div class="bars">' + bars + '</div>' +
+      '<p class="muted">目安は手取りに対する割合で、家族構成・住まい・車の有無で切り替えているよ。住居費や車のように今すぐ変えにくいものは「中長期で検討」として、下の見直し後の金額には入れていないよ。見直し済みの項目と大切にしたい支出も、候補から外しているよ。</p></div>' +
+
+      '<div class="card"><span class="qlabel">見直した後の収支表</span><h2>こう変わるよ</h2>' +
+      '<div class="ba"><div><span class="muted">いま、' + leftWord + '</span><span class="big">' + (d.left < 0 ? "-" : "") + yen(Math.abs(d.left)) + '</span><span class="muted num">余剰の割合 ' + d.rate.toFixed(1) + '%</span></div>' +
+      '<div class="after"><span class="muted">見直し後、毎月の余剰資金</span><span class="big">' + (d.leftAfter < 0 ? "-" : "") + yen(Math.abs(d.leftAfter)) + '</span><span class="muted num">余剰の割合 ' + d.rateAfter.toFixed(1) + '%</span></div></div>' +
+      '<div class="table-wrap"><table><thead><tr><th>支出</th><th>いま</th><th>見直し後</th></tr></thead><tbody>' + tableRows +
+      '<tr class="total"><td>合計</td><td>' + yen(d.exp) + '</td><td>' + yen(d.exp - d.cut) + '</td></tr></tbody></table></div>' +
+      (d.cut > 0 ? '<h3>増えた余剰資金を積み上げると</h3><div class="future">' +
+        '<div><span class="muted">1年で</span><span class="big">' + man(d.cut * 12) + '</span></div>' +
+        '<div><span class="muted">5年で</span><span class="big">' + man(d.cut * 60) + '</span></div></div>' : "") +
+      '</div>' +
+
+      '<div class="card" id="next-card"><span class="qlabel">次にやること</span><h2>まだ見直せそうなところ</h2>' +
+      '<p class="qhint">' + (d.done.length || d.keep.length ? '見直し済み（' + esc(d.done.join("・") || "なし") + '）と大切にしたい支出（' + esc(d.keep.join("・") || "なし") + '）は外してあるよ。' : '') + 'この中から、今日決められそうなものを1つ選んでね。</p>' +
+      (state.chosen != null && d.acts[state.chosen] ? (function (x) {
+        return '<div class="commit"><span class="qlabel">今月のアクション</span><h3>' + esc(x.title) + '</h3><p><b>最初の一歩：</b>' + esc(x.step) + '</p>' + (x.gain ? '<p class="muted num">効果の目安：月' + yen(x.gain) + '</p>' : "") +
+          '<div class="row"><button class="btn" id="copy">コピーする</button><button class="btn link" id="unchoose">選び直す</button></div><span class="muted" id="copied" hidden>コピーしたよ</span></div>';
+      })(d.acts[state.chosen]) : "") +
+      '<div class="actions">' + d.acts.map(function (x, i) {
+        var on = state.chosen === i;
+        return '<div class="action' + (on ? " chosen" : "") + '"><span class="n">' + (i + 1) + '</span><div class="act-body"><h3>' + esc(x.title) + '</h3><p>' + esc(x.body) + '</p><p class="first-step"><b>最初の一歩：</b>' + esc(x.step) + '</p>' + (x.gain ? '<p class="muted num">削減額の目安：月' + yen(x.gain) + '</p>' : "") +
+          '<button class="btn ' + (on ? "" : "ghost") + ' pick" id="pick-' + i + '" data-i="' + i + '">' + (on ? "これに決めた" : "これにする") + '</button></div></div>';
+      }).join("") + '</div>' +
+      '<p>' + (goals.length ? '叶えたいこと（' + esc(goals.join("・")) + '）に向けた' : '') + '余剰資金の使い道（貯める・増やす）は、次のステップで考えていこう。</p>' +
+      '</div>' +
+
+      '<p class="disclaimer">' + DISCLAIMER + '</p>' +
+      '<div class="row"><button class="btn ghost" id="edit">' + (state.sample ? "自分の数字で診断する" : "数字を直す") + '</button><button class="btn link" id="home">はじめにもどる</button></div>';
+
+    app.querySelectorAll(".pick").forEach(function (b) { b.onclick = function () { state.chosen = Number(b.dataset.i); renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); }; });
+    var un = document.getElementById("unchoose"); if (un) un.onclick = function () { state.chosen = null; renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); };
+    var cp = document.getElementById("copy");
+    if (cp) cp.onclick = function () {
+      var x = d.acts[state.chosen];
+      var text = "【今月のアクション】" + x.title + "\n最初の一歩：" + x.step + (x.gain ? "\n削減額の目安：月" + yen(x.gain) : "");
+      function ok() { document.getElementById("copied").hidden = false; }
+      try { navigator.clipboard.writeText(text).then(ok, function () { ok(); }); } catch (e) {}
+    };
+    document.getElementById("edit").onclick = function () {
+      if (state.sample) { state.sample = false; state.answers = {}; state.income = {}; state.expense = {}; state.screen = "q"; state.qi = 0; try { var s = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (s && s.answers) { state.answers = s.answers; state.income = s.income || {}; state.expense = s.expense || {}; } } catch (e) {} }
+      else state.screen = "ledger";
+      render(); window.scrollTo(0, 0);
+    };
+    document.getElementById("home").onclick = function () { if (state.sample) { state.sample = false; state.answers = {}; state.income = {}; state.expense = {}; try { var s = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (s && s.answers) { state.answers = s.answers; state.income = s.income || {}; state.expense = s.expense || {}; } } catch (e) {} } state.screen = "intro"; render(); window.scrollTo(0, 0); };
+  }
+
+  function render() {
+    if (state.screen === "intro") renderIntro();
+    else if (state.screen === "q") renderQuestion();
+    else if (state.screen === "ledger") renderLedger();
+    else renderResult();
+  }
+  window.__nobishiro = { parsePaste: parsePaste, diagnose: diagnose, state: state, SAMPLE: SAMPLE };
+  render();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }
+</script>
+</body>
+</html>

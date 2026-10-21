@@ -201,7 +201,7 @@ a { color: var(--accent); font-weight: 700; }
   var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
   var EXPENSE = ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "教養・教育", "健康・医療", "水道光熱費", "通信費", "住宅（家賃など）", "保険", "自動車", "税・社会保障", "その他"];
   var SHORT = { "給与（手取り）": "給与", "事業（副業）収入（手取り）": "副業", "住宅（家賃など）": "住宅" };
-  var DIAG_URL = "https://claude.ai/artifact/Bst6MwonXAWDBMG5xctPvZ";
+  var DIAG_URL = "https://kentankekke0916-collab.github.io/kakeibo/shindan/";
   var STORE = "she-kakeibo-v1";
   var WD = ["日", "月", "火", "水", "木", "金", "土"];
   var TAG_LIST = [["消費", "生活に必要なもの"], ["浪費", "ムダづかい"], ["投資", "未来の自分のため"]];
@@ -463,6 +463,9 @@ a { color: var(--accent); font-weight: 700; }
     EXPENSE.forEach(function (c) { lines.push(c + "\t" + (t.by[c] || 0)); });
     return lines.join("\n");
   }
+  function handoff(key) {
+    try { var p = state.ym.split("-"); localStorage.setItem(key, JSON.stringify({ text: diagText(state.ym), label: p[0] + "年" + (+p[1]) + "月", at: Date.now() })); } catch (e) {}
+  }
   function renderSum() {
     var list = monthEntries(state.ym), t = totals(list), sp = list.filter(function (e) { return e.special; });
     var max = Math.max.apply(null, EXPENSE.map(function (c) { return t.by[c] || 0; }).concat([1]));
@@ -478,13 +481,15 @@ a { color: var(--accent); font-weight: 700; }
         return '<div><span class="l">' + tg[0] + '</span><span class="v">' + yen(v) + '</span><span class="p num">' + (t.exp ? Math.round(v / t.exp * 100) : 0) + '%</span></div>';
       }).join("") + '</div><p class="muted">浪費が多い項目から見直すと、我慢せずに減らしやすいよ。</p></div>' +
       '<div class="card"><h2>伸びしろ診断に渡す</h2>' +
-      '<p>この月の数字を、収支把握ワークと同じ並びでコピーするよ。' + (sp.length ? '特別な支出 ' + sp.length + '件（' + yen(sp.reduce(function (s, e) { return s + e.amount; }, 0)) + '）は外してある。' : '') + '</p>' +
-      '<button class="btn orange full" id="copyDiag">診断用にコピーする</button>' +
-      '<ol class="steps"><li><a href="' + DIAG_URL + '" target="_blank" rel="noopener">家計の伸びしろ診断</a>を開く</li><li>質問に答えて、収支入力の画面へ進む</li><li>「シートからまとめて貼り付ける」を開いて貼り付け、「読み込む」を押す</li></ol>' +
+      '<p>この月の数字を、収支把握ワークと同じ並びで診断に渡すよ。' + (sp.length ? '特別な支出 ' + sp.length + '件（' + yen(sp.reduce(function (s, e) { return s + e.amount; }, 0)) + '）は外してある。' : '') + '</p>' +
+      '<a class="btn orange full" id="goDiag" href="' + DIAG_URL + '" style="display:block;text-align:center;text-decoration:none">伸びしろ診断に渡す</a>' +
+      '<p class="muted">診断で質問に答えると、収支を入れる画面に「SHEmoney家計簿から読み込む」ボタンが出るよ。</p>' +
+      '<button class="btn ghost full" id="copyDiag">診断用にコピーする（貼り付けたいとき）</button>' +
       '<details><summary class="muted">コピーされる中身を見る</summary><pre class="out" id="copyOut">' + esc(diagText(state.ym)) + '</pre></details>' +
       '<p class="muted">月の途中だと金額が少なめに出るので、診断は月末か、1か月分そろってからがおすすめ。</p></div>';
     app.innerHTML = html;
-    bind("copyDiag", function () { copy(diagText(state.ym), "診断用にコピーしたよ。診断の貼り付け欄に貼ってね"); });
+    var gd = document.getElementById("goDiag"); if (gd) gd.addEventListener("click", function () { handoff("she-handoff"); });
+    bind("copyDiag", function () { handoff("she-handoff"); copy(diagText(state.ym), "診断用にコピーしたよ。診断の貼り付け欄に貼ってね"); });
   }
 
   // ---- Slack報告 ----

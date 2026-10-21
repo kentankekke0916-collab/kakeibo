@@ -1,10 +1,14 @@
-# SHEmoney家計簿（PWA版）
+# 家計管理ツール（PWA）
 
-このフォルダの中身をそのままGitHub Pagesなどの静的ホスティングに置けば、ホーム画面に追加できるアプリとして動く。
+GitHub Pagesで公開している4つのアプリ。どれもデータは端末のブラウザ内だけに保存し、サーバーには送らない。
 
-- index.html：アプリ本体（Artifactのモックと同じ中身＋Slack共有ボタン、CSVファイル保存）
-- manifest.webmanifest：アプリ名・アイコン・全画面起動の設定
-- sw.js：オフラインで開くためのキャッシュ。index.html を更新したら VERSION を上げる
-- icon-*.png / apple-touch-icon.png：アイコン
+| フォルダ | アプリ | 公開URL |
+|---|---|---|
+| / | SHEmoney家計簿 | https://kentankekke0916-collab.github.io/kakeibo/ |
+| /shindan/ | 家計の伸びしろ診断（SHEmoney版） | https://kentankekke0916-collab.github.io/kakeibo/shindan/ |
+| /kentee/ | 家計簿ケンティー（一般向け） | https://kentankekke0916-collab.github.io/kakeibo/kentee/ |
+| /kentee/shindan/ | ケンティーの伸びしろ診断（一般向け） | https://kentankekke0916-collab.github.io/kakeibo/kentee/shindan/ |
 
-家計データは端末のブラウザ内（localStorage）にだけ保存し、サーバーには送らない。
+- 家計簿の「集計」→「伸びしろ診断に渡す」で、月の集計を端末内（localStorage の she-handoff / kentee-handoff）経由で診断に渡す
+- 同じドメインに同居しているので、各 sw.js のキャッシュ名は別々の接頭辞（kakeibo- / nobishiro- / kentee-kakeibo- / kentee-nobishiro-）にし、上の階層のSWは下のアプリのリクエストに手を出さない
+- index.html を更新したら、同じフォルダの sw.js の VERSION を上げる
