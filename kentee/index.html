@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ケンティー">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>家計簿ケンティー</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: スマホアプリ型。上に月ヘッダー、中央に画面、下に固定タブバー（中央に記録ボタン） */
+:root {
+  --bg: #F1F8FC;
+  --surface: #FFFFFF;
+  --fg: #1B2B36;
+  --muted: #5A6E7B;
+  --line: #D3E5EF;
+  --accent: #1A78A8;
+  --accent-soft: #DDF0FA;
+  --gold: #3F8A36;
+  --gold-soft: #E4F2DC;
+  --warn: #C2452D;
+  --warn-soft: #F9E1DA;
+  --good: #1F7A8C;
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1A21; --surface: #16242D; --fg: #E4EEF3; --muted: #9AB0BD; --line: #27394A;
+    --accent: #62B9E6; --accent-soft: #1A3546; --gold: #8FD07C; --gold-soft: #22361C;
+    --warn: #EE8A72; --warn-soft: #3D2420; --good: #6FC6D6; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1A21; --surface: #16242D; --fg: #E4EEF3; --muted: #9AB0BD; --line: #27394A;
+  --accent: #62B9E6; --accent-soft: #1A3546; --gold: #8FD07C; --gold-soft: #22361C;
+  --warn: #EE8A72; --warn-soft: #3D2420; --good: #6FC6D6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.65; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.35; margin: 0; }
+h1 { font-size: 1.15rem; }
+h2 { font-size: 1.1rem; }
+h3 { font-size: 1rem; }
+p { margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); font-size: 0.85rem; }
+
+/* ヘッダー */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 10px; }
+.top-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: 0.8rem; letter-spacing: 0.06em; }
+.month { display: flex; align-items: center; gap: 4px; }
+.month button { font: inherit; background: none; border: none; color: var(--accent); font-size: 1.2rem; padding: 2px 10px; cursor: pointer; border-radius: 8px; }
+.month b { font-family: var(--font-display); font-size: 1.05rem; min-width: 7.5em; text-align: center; }
+
+/* 本体 */
+main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px calc(110px + env(safe-area-inset-bottom, 0px)); }
+.screen { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sample-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; padding: 10px 14px; border-radius: 12px; background: var(--gold-soft); }
+.sample-bar b { color: var(--gold); }
+
+/* 今月のまとめ */
+.sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sum div { display: flex; flex-direction: column; min-width: 0; }
+.sum .l { font-size: 0.75rem; color: var(--muted); }
+.sum .v { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sum .v.rest { color: var(--accent); }
+.sum .v.minus { color: var(--warn); }
+.quick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qbtn { font: inherit; font-weight: 700; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; text-align: left; }
+.qbtn small { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.qbtn.cam { border-color: var(--accent); background: var(--accent-soft); }
+.qbtn svg { width: 26px; height: 26px; stroke: var(--accent); fill: none; stroke-width: 1.8; margin-bottom: 4px; }
+
+/* 明細リスト */
+.day { display: flex; flex-direction: column; }
+.day-h { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--muted); padding-block: 8px 4px; border-bottom: 1px solid var(--line); }
+.ent { font: inherit; color: inherit; background: none; border: none; border-bottom: 1px solid var(--line); width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding-block: 10px; text-align: left; cursor: pointer; }
+.ent:last-child { border-bottom: none; }
+.cat { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.cat.inc { background: var(--gold-soft); color: var(--gold); }
+.ent .memo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ent .memo small { color: var(--muted); margin-left: 6px; font-size: 0.75rem; }
+.ent .amt { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.ent .amt.inc { color: var(--gold); }
+.empty { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 0.9rem; }
+
+/* フォーム */
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-radius: 12px; padding: 4px; gap: 4px; }
+.seg button { font: inherit; font-weight: 700; border: none; border-radius: 9px; padding: 8px; background: none; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.amount-in { display: flex; align-items: baseline; gap: 6px; border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
+.amount-in input { font-family: var(--font-display); font-weight: 700; font-size: 2rem; border: none; background: none; color: var(--fg); width: 100%; min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.amount-in input:focus { outline: none; }
+.amount-in span { font-size: 1.1rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 0.85rem; padding: 6px 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip.usual small { color: var(--muted); font-size: 0.7rem; margin-left: 6px; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.lbl { font-size: 0.8rem; font-weight: 700; color: var(--muted); letter-spacing: 0.04em; }
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld input[type="text"], .fld input[type="date"], .fld input[type="number"], textarea, select { font: inherit; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--bg); color: var(--fg); }
+textarea { min-height: 80px; resize: vertical; }
+.tagseg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tagseg button { font: inherit; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 8px 4px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.tagseg button small { font-size: 0.68rem; color: var(--muted); }
+.tagseg button[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); }
+.tri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tri div { display: flex; flex-direction: column; padding: 10px; border-radius: 12px; background: var(--bg); min-width: 0; }
+.tri .l { font-size: 0.8rem; font-weight: 700; }
+.tri .v { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tri .p { font-size: 0.75rem; color: var(--muted); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 0.9rem; }
+.check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.row.between { justify-content: space-between; }
+.btn { font: inherit; font-weight: 700; padding: 12px 22px; border-radius: 99px; border: none; background: var(--accent); color: var(--surface); cursor: pointer; }
+.btn.full { width: 100%; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.orange { background: var(--gold); }
+.btn.danger { background: transparent; color: var(--warn); border: 1.5px solid var(--warn); }
+.btn.small { padding: 7px 14px; font-size: 0.85rem; }
+.btn:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* レシート */
+.receipt { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: start; }
+.receipt img { width: 96px; height: 128px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.reading { display: flex; flex-direction: column; gap: 8px; }
+.skel { height: 14px; border-radius: 6px; background: linear-gradient(90deg, var(--line), var(--accent-soft), var(--line)); background-size: 200% 100%; animation: sh 1.2s infinite linear; }
+@keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.items { display: flex; flex-direction: column; }
+.item { display: grid; grid-template-columns: 1fr 110px auto; gap: 8px; align-items: center; padding-block: 8px; border-bottom: 1px solid var(--line); }
+.item select { padding: 6px 8px; font-size: 0.82rem; }
+.item .n { min-width: 0; font-size: 0.9rem; }
+.item .a { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.tot { display: flex; justify-content: space-between; font-weight: 700; padding-top: 8px; }
+.note { font-size: 0.82rem; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+.note.gold { background: var(--gold-soft); }
+
+/* 集計 */
+.bars { display: flex; flex-direction: column; gap: 10px; }
+.bar-top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.bar-track { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--accent); }
+.bar-item.zero { opacity: .5; }
+.pct { color: var(--muted); font-size: 0.78rem; margin-left: 6px; }
+.out { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: 0.82rem; white-space: pre-wrap; word-break: break-all; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0; max-height: 320px; overflow: auto; }
+.steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+a { color: var(--accent); font-weight: 700; }
+
+/* 下部タブ */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+.tabs-in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; }
+.tab { font: inherit; font-size: 0.7rem; background: none; border: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 10px; cursor: pointer; }
+.tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.tab[aria-current="page"] { color: var(--accent); font-weight: 700; }
+.tab.add span.circle { width: 52px; height: 52px; border-radius: 50%; background: var(--gold); display: grid; place-items: center; margin-top: -22px; box-shadow: 0 4px 12px rgba(63,138,54,.35); }
+.tab.add svg { stroke: #fff; width: 26px; height: 26px; stroke-width: 2.4; }
+.tab.add { color: var(--gold); font-weight: 700; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 0.88rem; z-index: 20; max-width: calc(100% - 32px); }
+.disclaimer { font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+@media (max-width: 380px) { .sum .v { font-size: 1rem; } .item { grid-template-columns: 1fr 96px auto; } }
+</style>
+
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <span class="brand">家計簿ケンティー</span>
+  <div class="month"><button id="mPrev" aria-label="前の月">‹</button><b id="mLabel" class="num"></b><button id="mNext" aria-label="次の月">›</button></div>
+</div></header>
+<main><div class="screen" id="app"></div></main>
+<nav class="tabs" aria-label="メニュー"><div class="tabs-in">
+  <button class="tab" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>ホーム</button>
+  <button class="tab" data-tab="sum"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>集計</button>
+  <button class="tab add" data-tab="add"><span class="circle"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>記録</button>
+  <button class="tab" data-tab="report"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>シェア</button>
+  <button class="tab" data-tab="data"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>データ</button>
+</div></nav>
+
+<script>
+(function () {
+  "use strict";
+  var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
+  var EXPENSE = ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "教養・教育", "健康・医療", "水道光熱費", "通信費", "住宅（家賃など）", "保険", "自動車", "税・社会保障", "その他"];
+  var SHORT = { "給与（手取り）": "給与", "事業（副業）収入（手取り）": "副業", "住宅（家賃など）": "住宅" };
+  var STORE = "kentee-kakeibo-v1";
+  var WD = ["日", "月", "火", "水", "木", "金", "土"];
+  var TAG_LIST = [["消費", "生活に必要なもの"], ["浪費", "ムダづかい"], ["投資", "未来の自分のため"]];
+  function tagOf(e) { return e.tag || "消費"; }
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function ds(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function today() { return ds(new Date()); }
+  function yen(n) { return Math.round(n).toLocaleString("ja-JP") + "円"; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function md(s) { var p = s.split("-"); var d = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + "/" + (+p[2]) + "（" + WD[d.getDay()] + "）"; }
+
+  // ---- サンプル（今月の日付で作る） ----
+  function makeSample() {
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth(), last = now.getDate();
+    function d(day) { return ds(new Date(y, m, Math.max(1, Math.min(day, last)))); }
+    var rows = [
+      [1, "income", "給与（手取り）", 280000, "9月分の給与"], [1, "expense", "住宅（家賃など）", 95000, "家賃"],
+      [2, "expense", "通信費", 8200, "スマホ"], [3, "expense", "食費", 4380, "スーパー"], [3, "expense", "日用品", 1280, "ドラッグストア"],
+      [5, "expense", "趣味・娯楽", 1490, "動画サブスク"], [6, "expense", "交際費", 5500, "友人とランチ"], [7, "expense", "食費", 3120, "スーパー"],
+      [8, "expense", "交通費", 1200, "電車"], [9, "expense", "衣服・美容", 6600, "美容院"], [10, "expense", "水道光熱費", 9800, "電気・ガス"],
+      [10, "income", "事業（副業）収入（手取り）", 30000, "ブログ収入"], [11, "expense", "食費", 980, "コンビニ"], [12, "expense", "保険", 12000, "医療保険"],
+      [13, "expense", "食費", 5240, "スーパー"], [14, "expense", "教養・教育", 2200, "本"], [last - 1, "expense", "食費", 760, "コンビニ"], [last - 2, "expense", "食費", 2980, "スーパー"], [last - 3, "expense", "交通費", 420, "電車"],
+      [last, "expense", "食費", 1580, "スーパー"], [last, "expense", "日用品", 800, "ティッシュ・洗剤"]
+    ];
+    var TAGS = { "動画サブスク": "浪費", "友人とランチ": "投資", "コンビニ": "浪費", "本": "投資" };
+    return rows.map(function (r) { return { id: uid(), date: d(r[0]), type: r[1], cat: r[2], amount: r[3], memo: r[4], tag: r[1] === "expense" ? (TAGS[r[4]] || "消費") : "", special: false, src: "manual" }; });
+  }
+
+  var state = { tab: "home", ym: today().slice(0, 7), entries: [], sample: true, edit: null, form: null, receipt: null, repFrom: today(), repTo: today(), intro: "", comment: "" };
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (saved && saved.entries) { state.entries = saved.entries; state.sample = !!saved.sample; }
+    else state.entries = makeSample();
+  } catch (e) { state.entries = makeSample(); }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify({ entries: state.entries, sample: state.sample })); } catch (e) {} }
+
+  var app = document.getElementById("app");
+  function toast(msg) {
+    var t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2200);
+  }
+  function copy(text, done) {
+    function fallback() { var o = document.getElementById("copyOut"); if (o) { var r = document.createRange(); r.selectNodeContents(o); var s = getSelection(); s.removeAllRanges(); s.addRange(r); } toast("コピーできなかったので、文字を長押ししてコピーしてね"); }
+    try { navigator.clipboard.writeText(text).then(function () { toast(done || "コピーしたよ"); }, fallback); } catch (e) { fallback(); }
+  }
+  function monthEntries(ym) { return state.entries.filter(function (e) { return e.date.slice(0, 7) === ym; }); }
+  function totals(list) {
+    var inc = 0, exp = 0, by = {};
+    list.forEach(function (e) { if (e.type === "income") inc += e.amount; else exp += e.amount; by[e.cat] = (by[e.cat] || 0) + e.amount; });
+    return { inc: inc, exp: exp, by: by };
+  }
+  function sampleBar() {
+    if (!state.sample) return "";
+    return '<div class="sample-bar"><span><b>サンプル表示中</b>　架空の家計簿だよ。触って試してね</span><button class="btn small orange" id="clearSample">自分の記録を始める</button></div>';
+  }
+  function ymLabel(ym) { var p = ym.split("-"); return p[0] + "年" + (+p[1]) + "月"; }
+
+  // ---- ホーム ----
+  function renderHome() {
+    var list = monthEntries(state.ym), t = totals(list), rest = t.inc - t.exp;
+    var days = {};
+    list.forEach(function (e) { (days[e.date] = days[e.date] || []).push(e); });
+    var keys = Object.keys(days).sort().reverse();
+    var html = sampleBar() +
+      '<div class="card"><h2>' + ymLabel(state.ym) + 'のお金</h2><div class="sum">' +
+      '<div><span class="l">収入</span><span class="v num">' + yen(t.inc) + '</span></div>' +
+      '<div><span class="l">支出</span><span class="v num">' + yen(t.exp) + '</span></div>' +
+      '<div><span class="l">手元に残る</span><span class="v num ' + (rest < 0 ? "minus" : "rest") + '">' + yen(rest) + '</span></div></div></div>' +
+      '<div class="quick">' +
+      '<button class="qbtn cam" id="goCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>レシートをAIで読む<small>自分のAIで読み取って貼るだけ</small></button>' +
+      '<button class="qbtn" id="goAdd"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>手で入れる<small>現金・振込・収入など</small></button></div>' +
+      '<div class="card"><div class="row between"><h2>明細</h2><span class="muted num">' + list.length + '件</span></div>';
+    if (!keys.length) html += '<p class="empty">この月の記録はまだないよ。<br>下の「記録」かレシート撮影から始めてね。</p>';
+    keys.forEach(function (k) {
+      var dayExp = days[k].reduce(function (s, e) { return s + (e.type === "expense" ? e.amount : 0); }, 0);
+      html += '<div class="day"><div class="day-h"><span>' + md(k) + '</span><span class="num">支出 ' + yen(dayExp) + '</span></div>';
+      days[k].forEach(function (e) {
+        var inc = e.type === "income";
+        html += '<button class="ent" data-id="' + e.id + '"><span class="cat' + (inc ? " inc" : "") + '">' + esc(SHORT[e.cat] || e.cat) + '</span>' +
+          '<span class="memo">' + esc(e.memo || "（メモなし）") + (inc ? '' : '<small>' + tagOf(e) + '</small>') + (e.special ? '<small>特別</small>' : '') + (e.src === "receipt" ? '<small>レシート</small>' : '') + '</span>' +
+          '<span class="amt num' + (inc ? " inc" : "") + '">' + (inc ? "+" : "") + yen(e.amount) + '</span></button>';
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    app.innerHTML = html;
+    bind("goCam", openReceipt);
+    bind("goAdd", function () { openForm(null); });
+    app.querySelectorAll(".ent").forEach(function (b) { b.onclick = function () { openForm(b.getAttribute("data-id")); }; });
+  }
+
+  // ---- 記録フォーム ----
+  function openForm(id) {
+    var e = id ? state.entries.filter(function (x) { return x.id === id; })[0] : null;
+    state.edit = id;
+    state.form = e ? JSON.parse(JSON.stringify(e)) : { id: uid(), date: today(), type: "expense", cat: "食費", amount: "", memo: "", tag: "消費", special: false, src: "manual" };
+    state.tab = "add"; render();
+  }
+  function renderForm() {
+    var f = state.form, cats = f.type === "income" ? INCOME : EXPENSE;
+    app.innerHTML = '<div class="card"><div class="row between"><h2>' + (state.edit ? "記録を直す" : "記録する") + '</h2>' +
+      (state.edit ? '' : '<button class="btn small ghost" id="fCam">レシートをAIで読む</button>') + '</div>' +
+      (!state.edit && usuals().length ? '<div class="fld"><span class="lbl">いつもの記録（タップすると金額だけ入れればOK）</span><div class="chips">' +
+        usuals().map(function (u, i) { return '<button class="chip usual" data-u="' + i + '">' + esc(u.memo) + '<small>' + esc(SHORT[u.cat] || u.cat) + '・' + u.tag + '</small></button>'; }).join("") + '</div></div>' : '') +
+      '<div class="seg"><button data-type="expense" aria-pressed="' + (f.type === "expense") + '">支出</button><button data-type="income" aria-pressed="' + (f.type === "income") + '">収入</button></div>' +
+      '<label class="amount-in"><input id="fAmt" type="number" inputmode="numeric" min="0" placeholder="0" value="' + (f.amount || "") + '" aria-label="金額"><span>円</span></label>' +
+      '<div class="fld"><span class="lbl">項目（' + cats.length + '項目）</span><div class="chips">' +
+      cats.map(function (c) { return '<button class="chip" data-cat="' + esc(c) + '" aria-pressed="' + (f.cat === c) + '">' + esc(c) + '</button>'; }).join("") + '</div></div>' +
+      (f.type === "expense" ? '<div class="fld"><span class="lbl">消費・浪費・投資</span><div class="tagseg">' +
+        TAG_LIST.map(function (t) { return '<button data-tag="' + t[0] + '" aria-pressed="' + (tagOf(f) === t[0]) + '"><b>' + t[0] + '</b><small>' + t[1] + '</small></button>'; }).join("") + '</div></div>' : '') +
+      '<div class="fld"><label class="lbl" for="fMemo">メモ（記録をシェアするときの名目になるよ）</label><input type="text" id="fMemo" list="memoList" value="' + esc(f.memo) + '" placeholder="例：電気代、ランチ代"><datalist id="memoList">' +
+        Array.from(new Set(state.entries.map(function (e) { return e.memo; }).filter(Boolean))).slice(0, 30).map(function (m) { return '<option value="' + esc(m) + '">'; }).join("") + '</datalist></div>' +
+      '<div class="fld"><label class="lbl" for="fDate">日付</label><input type="date" id="fDate" value="' + f.date + '"></div>' +
+      (f.type === "expense" ? '<label class="check"><input type="checkbox" id="fSp"' + (f.special ? " checked" : "") + '><span>特別な支出（冠婚葬祭・家電の買い替えなど）<br><span class="muted">月の集計からは外すよ。毎月のふだんの家計が見えやすくなる。</span></span></label>' : '') +
+      '<button class="btn full" id="fSave">' + (state.edit ? "保存する" : "記録する") + '</button>' +
+      (state.edit ? '<div class="row between"><button class="btn small ghost" id="fBack">戻る</button><button class="btn small danger" id="fDel">この記録を消す</button></div><p class="muted" id="delConfirm" hidden></p>' : '') +
+      '</div>';
+    app.querySelectorAll(".seg button").forEach(function (b) { b.onclick = function () { readForm(); f.type = b.getAttribute("data-type"); f.cat = f.type === "income" ? INCOME[0] : "食費"; renderForm(); }; });
+    app.querySelectorAll(".chip").forEach(function (b) { b.onclick = function () { readForm(); f.cat = b.getAttribute("data-cat"); renderForm(); }; });
+    app.querySelectorAll(".tagseg button").forEach(function (b) { b.onclick = function () { readForm(); f.tag = b.getAttribute("data-tag"); renderForm(); }; });
+    bind("fCam", openReceipt);
+    app.querySelectorAll("[data-u]").forEach(function (b) { b.onclick = function () { var u = usuals()[+b.getAttribute("data-u")]; readForm(); f.type = "expense"; f.memo = u.memo; f.cat = u.cat; f.tag = u.tag; renderForm(); var a = document.getElementById("fAmt"); if (a) a.focus(); }; });
+    bind("fBack", function () { state.edit = null; state.form = null; state.tab = "home"; render(); });
+    bind("fDel", function () {
+      var c = document.getElementById("delConfirm");
+      if (c.hidden) { c.hidden = false; c.innerHTML = '本当に消す？　<button class="btn small danger" id="fDel2">消す</button>'; bind("fDel2", function () {
+        state.entries = state.entries.filter(function (x) { return x.id !== state.edit; }); save(); state.edit = null; state.form = null; state.tab = "home"; toast("消したよ"); render(); }); }
+    });
+    bind("fSave", function () {
+      readForm();
+      var amt = Number(f.amount);
+      if (!amt || amt <= 0) { toast("金額を入れてね"); document.getElementById("fAmt").focus(); return; }
+      f.amount = Math.round(amt);
+      if (state.edit) state.entries = state.entries.map(function (x) { return x.id === state.edit ? f : x; });
+      else state.entries.push(f);
+      save(); state.ym = f.date.slice(0, 7);
+      toast(state.edit ? "保存したよ" : f.cat + " " + yen(f.amount) + " を記録したよ");
+      state.edit = null; state.form = null; state.tab = "home"; render();
+    });
+    if (!state.edit) setTimeout(function () { var a = document.getElementById("fAmt"); if (a && !f.amount) a.focus(); }, 50);
+  }
+  function readForm() {
+    var f = state.form; if (!f) return;
+    var a = document.getElementById("fAmt"), m = document.getElementById("fMemo"), d = document.getElementById("fDate"), s = document.getElementById("fSp");
+    if (a) f.amount = a.value; if (m) f.memo = m.value; if (d && d.value) f.date = d.value; f.special = s ? s.checked : false;
+  }
+
+  // ---- レシート：受講生が自分の生成AIで読み取り、回答を貼って取り込む ----
+  var AI_PROMPT = [
+    "添付したレシートの画像を読み取って、家計簿に取り込める形式で出力してください。",
+    "",
+    "【出力ルール】",
+    "・説明や前置きは書かず、下の形式の行だけをコードブロックに入れて出力する",
+    "・1行目は「店名|お店の名前」、2行目は「日付|YYYY-MM-DD」（読めなければ空欄）",
+    "・3行目からは1品目1行で「品目|金額|項目」",
+    "・金額は税込の数字だけ。値引き・割引はマイナスの数字で1行にする",
+    "・項目は次の15個から最も近いものを1つ選ぶ：" + EXPENSE.join("、"),
+    "・最後の行は「合計|レシートの合計金額」",
+    "",
+    "【出力例】",
+    "店名|スーパーみずいろ",
+    "日付|2026-10-16",
+    "たまご 10個|278|食費",
+    "キッチンペーパー|298|日用品",
+    "値引き|-30|食費",
+    "合計|546"
+  ].join("\n");
+  var AI_SAMPLE = "```\n店名|スーパーみずいろ 中央店\n日付|" + today() + "\nたまご 10個|278|食費\n鶏むね肉|512|食費\n牛乳 1L|228|食費\n食パン|168|食費\n値引き 鶏むね肉|-50|食費\nキッチンペーパー|298|日用品\n食器用洗剤|198|日用品\n合計|1632\n```";
+
+  function parseAI(text) {
+    var r = { store: "", date: today(), items: [], total: null };
+    text.replace(/\r/g, "").split("\n").forEach(function (line) {
+      line = line.replace(/^[`*・]+/, "").trim();
+      if (!line || /^```/.test(line)) return;
+      var c = line.split(/\s*[|｜]\s*/);
+      if (c.length < 2) return;
+      var head = c[0].replace(/\s/g, "");
+      function num(s) { var n = Number(String(s).replace(/[,，円¥￥\s]/g, "").replace(/[－−ー]/g, "-").replace(/[０-９]/g, function (d) { return String.fromCharCode(d.charCodeAt(0) - 65248); })); return isNaN(n) ? null : n; }
+      if (head === "店名") { r.store = c[1]; return; }
+      if (head === "日付") { var m = c[1].match(/(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/); if (m) r.date = m[1] + "-" + pad(+m[2]) + "-" + pad(+m[3]); return; }
+      if (head === "合計") { r.total = num(c[1]); return; }
+      if (head === "品目" || c.length < 3) return;
+      var a = num(c[1]); if (a === null) return;
+      var cat = EXPENSE.indexOf(c[2].trim()) >= 0 ? c[2].trim() : "その他";
+      r.items.push({ n: c[0], a: a, c: cat });
+    });
+    return r;
+  }
+
+  function openReceipt() { state.receipt = { status: "paste", text: "" }; state.form = null; state.edit = null; state.tab = "receipt"; render(); }
+  function renderReceipt() {
+    var r = state.receipt;
+    if (!r) { state.tab = "home"; return render(); }
+    if (r.status === "paste") {
+      app.innerHTML = '<div class="card"><h2>レシートをAIで読み取る</h2>' +
+        '<p>ふだん使っている生成AI（ChatGPT・Gemini・Claudeなど）で読み取って、その回答をここに貼るだけ。写真はこのアプリには送られないよ。</p>' +
+        '<ol class="steps"><li><b>指示文をコピー</b>して、AIアプリに貼る</li><li>同じメッセージにレシートの写真をつけて送る</li><li>AIの回答をコピーして、下に貼る</li></ol>' +
+        '<button class="btn ghost full" id="pCopy">① 読み取り用の指示文をコピー</button>' +
+        '<details><summary class="muted">指示文の中身を見る</summary><pre class="out" id="copyOut">' + esc(AI_PROMPT) + '</pre></details>' +
+        '<div class="fld"><label class="lbl" for="pIn">③ AIの回答を貼る</label><textarea id="pIn" placeholder="ここにAIの回答を貼り付け">' + esc(r.text) + '</textarea></div>' +
+        '<button class="btn full" id="pRead">取り込む</button>' +
+        '<button class="btn small ghost" id="pSample">サンプルの回答で試す</button>' +
+        '<p class="note">指示文はどのAIでも同じものを使えるよ。毎回貼るのが面倒なら、指示文を登録した専用のAI（GPTsやGemなど）を配る形にもできる。</p></div>';
+      bind("pCopy", function () { copy(AI_PROMPT, "指示文をコピーしたよ。AIアプリに貼って、レシートの写真と一緒に送ってね"); });
+      bind("pSample", function () { document.getElementById("pIn").value = AI_SAMPLE; r.text = AI_SAMPLE; });
+      document.getElementById("pIn").oninput = function (e) { r.text = e.target.value; };
+      bind("pRead", function () {
+        var p = parseAI(document.getElementById("pIn").value);
+        if (!p.items.length) { toast("読み取れる行がなかったよ。AIの回答をそのまま全部貼ってね"); return; }
+        state.receipt = { status: "done", store: p.store, date: p.date, items: p.items, total: p.total, text: r.text }; render();
+      });
+      return;
+    }
+    var total = r.items.reduce(function (s, i) { return s + i.a; }, 0), diff = r.total !== null && r.total !== total;
+    app.innerHTML = '<div class="card"><h2>読み取り結果の確認</h2>' +
+      '<div class="row"><div class="fld" style="flex:2;min-width:150px"><label class="lbl" for="rStore">お店</label><input type="text" id="rStore" value="' + esc(r.store) + '"></div>' +
+      '<div class="fld" style="flex:1;min-width:130px"><label class="lbl" for="rDate">日付</label><input type="date" id="rDate" value="' + r.date + '"></div></div>' +
+      '<div class="fld"><span class="lbl">品目と振り分け先（違っていたら直してね）</span><div class="items">' +
+      r.items.map(function (i, k) {
+        return '<div class="item"><span class="n">' + esc(i.n) + '</span><select data-k="' + k + '" aria-label="' + esc(i.n) + 'の項目">' +
+          EXPENSE.map(function (c) { return '<option' + (c === i.c ? " selected" : "") + '>' + esc(c) + '</option>'; }).join("") + '</select><span class="a num">' + yen(i.a) + '</span></div>';
+      }).join("") + '</div><div class="tot"><span>合計</span><span class="num">' + yen(total) + '</span></div></div>' +
+      (diff ? '<p class="note gold">レシートの合計（' + yen(r.total) + '）と ' + yen(Math.abs(r.total - total)) + ' ズレてるよ。読み間違いがないか写真と見比べてね。</p>' : (r.total !== null ? '<p class="note">レシートの合計と一致したよ。</p>' : '')) +
+      '<div class="fld"><span class="lbl">消費・浪費・投資（このレシート全体）</span><div class="tagseg">' +
+      TAG_LIST.map(function (t) { return '<button data-tag="' + t[0] + '" aria-pressed="' + ((r.tag || "消費") === t[0]) + '"><b>' + t[0] + '</b><small>' + t[1] + '</small></button>'; }).join("") + '</div></div>' +
+      '<button class="btn full" id="rSave">項目ごとにまとめて記録する</button><div class="row between"><button class="btn small ghost" id="rBack">貼り直す</button><button class="btn small ghost" id="rCancel">やめる</button></div></div>';
+    function keep() { r.store = document.getElementById("rStore").value; r.date = document.getElementById("rDate").value || r.date; }
+    app.querySelectorAll(".item select").forEach(function (s) { s.onchange = function () { r.items[+s.getAttribute("data-k")].c = s.value; }; });
+    app.querySelectorAll(".tagseg button").forEach(function (b) { b.onclick = function () { keep(); r.tag = b.getAttribute("data-tag"); renderReceipt(); }; });
+    bind("rBack", function () { r.status = "paste"; renderReceipt(); });
+    bind("rCancel", function () { state.receipt = null; state.tab = "home"; render(); });
+    bind("rSave", function () {
+      keep(); var by = {};
+      r.items.forEach(function (i) { by[i.c] = (by[i.c] || 0) + i.a; });
+      var n = 0;
+      Object.keys(by).forEach(function (c) { if (by[c] > 0) { n++; state.entries.push({ id: uid(), date: r.date, type: "expense", cat: c, amount: by[c], memo: r.store || "レシート", tag: r.tag || "消費", special: false, src: "receipt" }); } });
+      save(); state.receipt = null; state.ym = r.date.slice(0, 7); state.tab = "home";
+      toast(n + "件に分けて記録したよ"); render();
+    });
+  }
+
+  // ---- いつもの記録（過去の記録からよく使う組み合わせを出す） ----
+  function usuals() {
+    var cnt = {};
+    state.entries.forEach(function (e) {
+      if (e.type !== "expense" || !e.memo || e.src === "receipt") return;
+      var k = e.memo + "\u0000" + e.cat + "\u0000" + tagOf(e);
+      cnt[k] = (cnt[k] || 0) + 1;
+    });
+    return Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).slice(0, 8).map(function (k) { var p = k.split("\u0000"); return { memo: p[0], cat: p[1], tag: p[2] }; });
+  }
+
+  // ---- 集計・診断へ渡す ----
+  function diagText(ym) {
+    var list = monthEntries(ym).filter(function (e) { return !e.special; }), t = totals(list), lines = [];
+    INCOME.forEach(function (c) { lines.push(c + "\t" + (t.by[c] || 0)); });
+    EXPENSE.forEach(function (c) { lines.push(c + "\t" + (t.by[c] || 0)); });
+    return lines.join("\n");
+  }
+  function renderSum() {
+    var list = monthEntries(state.ym), t = totals(list), sp = list.filter(function (e) { return e.special; });
+    var max = Math.max.apply(null, EXPENSE.map(function (c) { return t.by[c] || 0; }).concat([1]));
+    var html = sampleBar() + '<div class="card"><h2>' + ymLabel(state.ym) + 'の支出（15項目）</h2><div class="bars">' +
+      EXPENSE.map(function (c) {
+        var v = t.by[c] || 0, p = t.exp ? Math.round(v / t.exp * 100) : 0;
+        return '<div class="bar-item' + (v ? "" : " zero") + '"><div class="bar-top"><span>' + esc(c) + (v ? '<span class="pct num">' + p + '%</span>' : '') + '</span><span class="num">' + yen(v) + '</span></div>' +
+          '<div class="bar-track"><div class="bar-fill" style="width:' + (v / max * 100) + '%"></div></div></div>';
+      }).join("") + '</div><div class="row between"><b>支出合計</b><b class="num">' + yen(t.exp) + '</b></div>' +
+      '<div class="row between"><span>収入合計</span><span class="num">' + yen(t.inc) + '</span></div></div>' +
+      '<div class="card"><h2>消費・浪費・投資</h2><div class="tri">' + TAG_LIST.map(function (tg) {
+        var v = list.filter(function (e) { return e.type === "expense" && tagOf(e) === tg[0]; }).reduce(function (s, e) { return s + e.amount; }, 0);
+        return '<div><span class="l">' + tg[0] + '</span><span class="v">' + yen(v) + '</span><span class="p num">' + (t.exp ? Math.round(v / t.exp * 100) : 0) + '%</span></div>';
+      }).join("") + '</div><p class="muted">浪費が多い項目から見直すと、我慢せずに減らしやすいよ。</p></div>' +
+      '<div class="card"><h2>15項目の集計をコピー</h2>' +
+      '<p>この月の収入4項目・支出15項目の合計を、スプレッドシートにそのまま貼れる形でコピーするよ。' + (sp.length ? '特別な支出 ' + sp.length + '件（' + yen(sp.reduce(function (s, e) { return s + e.amount; }, 0)) + '）は外してある。' : '') + '</p>' +
+      '<button class="btn orange full" id="copyDiag">集計をコピーする</button>' +
+      '<details><summary class="muted">コピーされる中身を見る</summary><pre class="out" id="copyOut">' + esc(diagText(state.ym)) + '</pre></details>' +
+      '<p class="muted">家計の見直しに使うなら、月末か1か月分そろってからがおすすめ。</p></div>';
+    app.innerHTML = html;
+    bind("copyDiag", function () { copy(diagText(state.ym), "集計をコピーしたよ"); });
+  }
+
+  // ---- 記録のシェア ----
+  // シェア用の形式：前置き → ＝＝＝ → 日付ごとに「名目　金額円【タグ】」 → ＝＝＝ → ひとこと
+  function slackDay(s) { var p = s.split("-"); var d = new Date(+p[0], +p[1] - 1, +p[2]); return (+p[1]) + "/" + (+p[2]) + "(" + WD[d.getDay()] + ")"; }
+  function reportText() {
+    var from = state.repFrom, to = state.repTo < from ? from : state.repTo, lines = [], sep = "＝＝＝＝＝＝";
+    if (state.intro.trim()) lines.push(state.intro.trim());
+    lines.push(sep);
+    var p = from.split("-"), d = new Date(+p[0], +p[1] - 1, +p[2]), guard = 0;
+    while (ds(d) <= to && guard++ < 31) {
+      var key = ds(d), exp = state.entries.filter(function (e) { return e.date === key && e.type === "expense"; });
+      lines.push(slackDay(key));
+      if (!exp.length) lines.push("ノーマネーデー");
+      exp.forEach(function (e) { lines.push((e.memo || e.cat) + "　" + e.amount + "円【" + tagOf(e) + "】"); });
+      d.setDate(d.getDate() + 1);
+    }
+    lines.push(sep);
+    if (state.comment.trim()) lines.push(state.comment.trim());
+    return lines.join("\n");
+  }
+  function renderReport() {
+    app.innerHTML = sampleBar() + '<div class="card"><h2>記録をシェアする</h2>' +
+      '<div class="row"><div class="fld" style="flex:1;min-width:130px"><label class="lbl" for="rpFrom">いつから</label><input type="date" id="rpFrom" value="' + state.repFrom + '"></div>' +
+      '<div class="fld" style="flex:1;min-width:130px"><label class="lbl" for="rpTo">いつまで</label><input type="date" id="rpTo" value="' + state.repTo + '"></div></div>' +
+      '<div class="row"><button class="btn small ghost" data-range="0">今日</button><button class="btn small ghost" data-range="1">昨日から</button><button class="btn small ghost" data-range="2">3日分</button></div>' +
+      '<div class="fld"><label class="lbl" for="rpIntro">はじめのひとこと（近況など）</label><textarea id="rpIntro" placeholder="例：今週は自炊をがんばった！">' + esc(state.intro) + '</textarea></div>' +
+      '<div class="fld"><label class="lbl" for="rpCom">ふりかえり（気づき・がんばったこと）</label><textarea id="rpCom" placeholder="例：土曜は友だちとランチ。良い時間を過ごせたのでこれは投資">' + esc(state.comment) + '</textarea></div>' +
+      '<span class="lbl">シェアする文のプレビュー</span><pre class="out" id="copyOut">' + esc(reportText()) + '</pre>' +
+      '<button class="btn orange full" id="rpCopy">コピーする</button>' +
+      (navigator.share ? '<button class="btn ghost full" id="rpShare">共有する（LINE・SNSなど）</button>' : '') +
+      '<p class="note">名目はメモ欄の内容（空なら項目名）、タグは記録したときの消費・浪費・投資がそのまま入るよ。支出がない日は「ノーマネーデー」と出る。家計簿仲間や家族への報告、SNSでの記録に使ってね。</p></div>';
+    var fI = document.getElementById("rpFrom"), tI = document.getElementById("rpTo"), iI = document.getElementById("rpIntro"), cI = document.getElementById("rpCom"), out = document.getElementById("copyOut");
+    function upd() { out.textContent = reportText(); }
+    fI.onchange = function () { if (fI.value) { state.repFrom = fI.value; if (state.repTo < state.repFrom) { state.repTo = state.repFrom; tI.value = state.repTo; } upd(); } };
+    tI.onchange = function () { if (tI.value) { state.repTo = tI.value; upd(); } };
+    iI.oninput = function () { state.intro = iI.value; upd(); };
+    cI.oninput = function () { state.comment = cI.value; upd(); };
+    app.querySelectorAll("[data-range]").forEach(function (b) { b.onclick = function () {
+      var n = +b.getAttribute("data-range"), d = new Date(); state.repTo = ds(d); d.setDate(d.getDate() - n); state.repFrom = ds(d); renderReport(); }; });
+    bind("rpCopy", function () { copy(reportText(), "コピーしたよ"); });
+    bind("rpShare", function () { navigator.share({ text: reportText() }).catch(function () {}); });
+  }
+
+  // ---- データ（バックアップ） ----
+  function toCSV() {
+    var rows = [["日付", "種類", "項目", "金額", "メモ", "特別な支出", "消浪投"]];
+    state.entries.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; }).forEach(function (e) {
+      rows.push([e.date, e.type === "income" ? "収入" : "支出", e.cat, e.amount, e.memo || "", e.special ? "1" : "", e.type === "income" ? "" : tagOf(e)]);
+    });
+    return rows.map(function (r) { return r.map(function (c) { c = String(c); return /[",\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(","); }).join("\n");
+  }
+  function fromCSV(text) {
+    var out = [], lines = text.replace(/\r/g, "").split("\n");
+    lines.forEach(function (line, i) {
+      if (!line.trim() || i === 0 && /日付/.test(line)) return;
+      var cells = [], cur = "", q = false;
+      for (var k = 0; k < line.length; k++) {
+        var ch = line[k];
+        if (q) { if (ch === '"' && line[k + 1] === '"') { cur += '"'; k++; } else if (ch === '"') q = false; else cur += ch; }
+        else if (ch === '"') q = true; else if (ch === ",") { cells.push(cur); cur = ""; } else cur += ch;
+      }
+      cells.push(cur);
+      var amt = Number(cells[3]);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(cells[0]) || !amt) return;
+      var type = cells[1] === "収入" ? "income" : "expense", list = type === "income" ? INCOME : EXPENSE;
+      out.push({ id: uid(), date: cells[0], type: type, cat: list.indexOf(cells[2]) >= 0 ? cells[2] : (type === "income" ? "その他収入" : "その他"), amount: amt, memo: cells[4] || "", special: cells[5] === "1", tag: type === "expense" ? (["消費", "浪費", "投資"].indexOf(cells[6]) >= 0 ? cells[6] : "消費") : "", src: "manual" });
+    });
+    return out;
+  }
+  function renderData() {
+    app.innerHTML = '<div class="card"><h2>バックアップ</h2>' +
+      '<p>家計簿のデータはこの端末の中だけに保存していて、どこにも送ってないよ。機種変更やアプリの削除で消えるので、月に1回はバックアップしておいてね。</p>' +
+      '<button class="btn full" id="csvFile">バックアップをファイルに保存する（' + state.entries.length + '件）</button>' +
+      '<button class="btn ghost full" id="csvCopy">バックアップをコピーする</button>' +
+      '<details><summary class="muted">バックアップの中身（CSV）を見る</summary><pre class="out" id="copyOut">' + esc(toCSV()) + '</pre></details>' +
+      '<p class="muted">CSV形式なので、スプレッドシートでも開けるよ。</p></div>' +
+      '<div class="card"><h2>バックアップから戻す</h2><textarea id="csvIn" placeholder="コピーしておいたバックアップをここに貼る"></textarea>' +
+      '<button class="btn ghost full" id="csvLoad">読み込んで追加する</button></div>' +
+      '<div class="card"><h2>データを消す</h2><p class="muted">この端末の家計簿をすべて消すよ。元に戻せないので、先にバックアップしてね。</p>' +
+      '<button class="btn danger full" id="wipe">すべて消す</button><div id="wipeC" hidden class="row"><span>本当に消す？</span><button class="btn small danger" id="wipe2">消す</button><button class="btn small ghost" id="wipeN">やめる</button></div></div>' +
+      '<p class="disclaimer">このアプリは家計の記録と振り返りのためのツールです。表示される金額や集計は入力内容に基づくもので、個別の金融商品の勧誘や助言を目的としたものではありません。</p>';
+    bind("csvFile", function () {
+      var name = "kakeibo-backup-" + today() + ".csv", blob = new Blob(["\ufeff" + toCSV()], { type: "text/csv" });
+      try {
+        var file = new File([blob], name, { type: "text/csv" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) { navigator.share({ files: [file] }).catch(function () {}); return; }
+      } catch (e) {}
+      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      toast("バックアップを保存したよ");
+    });
+    bind("csvCopy", function () { copy(toCSV(), "バックアップをコピーしたよ。メモアプリなどに保存してね"); });
+    bind("csvLoad", function () {
+      var add = fromCSV(document.getElementById("csvIn").value);
+      if (!add.length) { toast("読み込める行がなかったよ。バックアップをそのまま貼ってね"); return; }
+      if (state.sample) { state.entries = []; state.sample = false; }
+      state.entries = state.entries.concat(add); save(); toast(add.length + "件を読み込んだよ"); renderData();
+    });
+    bind("wipe", function () { document.getElementById("wipeC").hidden = false; });
+    bind("wipeN", function () { document.getElementById("wipeC").hidden = true; });
+    bind("wipe2", function () { state.entries = []; state.sample = false; save(); toast("すべて消したよ"); renderData(); });
+  }
+
+  function bind(id, fn) { var el = document.getElementById(id); if (el) el.onclick = fn; }
+
+  function render() {
+    document.getElementById("mLabel").textContent = ymLabel(state.ym);
+    var showMonth = state.tab === "home" || state.tab === "sum";
+    document.querySelector(".month").style.visibility = showMonth ? "visible" : "hidden";
+    document.querySelectorAll(".tab").forEach(function (t) {
+      var on = t.getAttribute("data-tab") === state.tab || (state.tab === "receipt" && t.getAttribute("data-tab") === "add");
+      if (on) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
+    });
+    if (state.tab === "home") renderHome();
+    else if (state.tab === "add") { if (!state.form) openForm(null); else renderForm(); }
+    else if (state.tab === "receipt") renderReceipt();
+    else if (state.tab === "sum") renderSum();
+    else if (state.tab === "report") renderReport();
+    else if (state.tab === "data") renderData();
+    bind("clearSample", function () { state.entries = []; state.sample = false; save(); toast("サンプルを消したよ。ここから記録してね"); render(); });
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.onclick = function () {
+      var to = t.getAttribute("data-tab");
+      if (to === "add") { openForm(null); return; }
+      state.form = null; state.edit = null; state.tab = to; render();
+    };
+  });
+  function shiftMonth(n) { var p = state.ym.split("-"); var d = new Date(+p[0], +p[1] - 1 + n, 1); state.ym = d.getFullYear() + "-" + pad(d.getMonth() + 1); render(); }
+  document.getElementById("mPrev").onclick = function () { shiftMonth(-1); };
+  document.getElementById("mNext").onclick = function () { shiftMonth(1); };
+  render();
+  window.__kakeibo = { diagText: diagText, reportText: reportText, toCSV: toCSV, fromCSV: fromCSV, state: state };
+})();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }
+</script>
+</body>
+</html>
