@@ -177,7 +177,7 @@ a { color: var(--accent); font-weight: 700; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 0.88rem; z-index: 20; max-width: calc(100% - 32px); }
 .disclaimer { font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
-/* キャラクター（おイモくん・マシュマロくん） */
+/* キャラクター（おいもくん・マシュマロくん） */
 .buddy { display: flex; align-items: flex-end; gap: 10px; }
 .buddy.right { flex-direction: row-reverse; }
 .buddy .chara { flex: none; }
@@ -277,7 +277,7 @@ a { color: var(--accent); font-weight: 700; }
   // ---- ホーム ----
   function homeBuddy(list, rest) {
     var isThisMonth = state.ym === today().slice(0, 7), todayCount = list.filter(function (e) { return e.date === today(); }).length;
-    if (!list.length) return Buddy.say("oimo", "はじめまして、おイモくんだよ。<br>まずは今日使ったお金を1つ記録してみよう！", { mood: "happy" });
+    if (!list.length) return Buddy.say("oimo", "はじめまして、おいもくんだよ。<br>まずは今日使ったお金を1つ記録してみよう！", { mood: "happy" });
     if (rest < 0) return Buddy.say("oimo", "今月は支出が収入を <b>" + yen(-rest) + "</b> こえてるよ。集計で浪費をのぞいてみよう。", { mood: "think" });
     if (isThisMonth && !todayCount) return Buddy.say("oimo", "今日の記録はまだだよ。レシートでも手入力でもOK！", { mood: "normal" });
     if (isThisMonth) return Buddy.say("oimo", "今日も記録できたね！今月は <b>" + yen(rest) + "</b> 残ってるよ。", { mood: "happy" });
