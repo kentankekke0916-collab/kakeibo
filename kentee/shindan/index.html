@@ -63,7 +63,7 @@ p { margin: 0; }
 .privacy { font-size: 0.78rem; color: var(--muted); }
 .progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
 .progress > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 20px; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 22px 20px; display: flex; flex-direction: column; gap: 16px; }
 .qlabel { font-size: 0.8rem; color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
 .qhint { font-size: 0.88rem; color: var(--muted); }
 .opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
@@ -155,11 +155,24 @@ tr.total td { font-weight: 700; border-bottom: none; }
   .ba, .future { grid-template-columns: 1fr; }
   h1 { font-size: 1.5rem; }
 }
+/* キャラクター（おイモくん・マシュマロくん） */
+.buddy { display: flex; align-items: flex-end; gap: 10px; }
+.buddy.right { flex-direction: row-reverse; }
+.buddy .chara { flex: none; }
+.bubble { position: relative; min-width: 0; background: var(--bg); border: 1.5px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.6; }
+.buddy.right .bubble { border-radius: 18px 18px 6px 18px; }
+.bubble b { color: var(--gold); }
+.chara { animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.cover-chars { display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 14px; }
+.cover-chars .mallow { animation-delay: -1.6s; }
+@keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+@media (prefers-reduced-motion: reduce) { .chara { animation: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
 <div class="wrap" id="app"></div>
 
+<script src="../buddy.js"></script>
 <script>
 (function () {
   "use strict";
@@ -269,7 +282,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
     var hasDraft = Object.keys(state.answers).length > 0;
     app.innerHTML = header(null) +
       '<div class="card">' +
-      '<div class="cover-band"><h1 style="padding-bottom:18px">あなたの家計、<br><span class="hl" style="white-space:nowrap">どこに伸びしろ</span><br>がある？</h1></div>' +
+      '<div class="cover-band"><div class="cover"><h1 style="padding-bottom:18px">あなたの家計、<br><span class="hl" style="white-space:nowrap">どこに伸びしろ</span><br>がある？</h1><div class="cover-chars">' + Buddy.oimo(96, "happy") + Buddy.mallow(62) + '</div></div></div>' +
       '<p>1か月の収支と、いくつかの質問への答えから、すでに見直したところや大切にしたい支出は残したまま、まだ見直せそうなところと、毎月の余剰資金をどれだけ増やせるかを一緒に見ていくよ。所要時間は5分くらい。</p>' +
       '<div class="steps">' +
       '<div class="step"><b>1</b><div><h3>あなたのことを教えて</h3><p class="muted">年代や家族構成で、理想の家計バランスは変わるからね</p></div></div>' +
@@ -310,7 +323,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
     app.innerHTML = header((state.qi / total) * 100) +
       '<div class="card">' +
       '<span class="qlabel">質問 ' + (state.qi + 1) + ' / ' + total + '</span>' +
-      '<h2>' + esc(q.q) + '</h2>' + (q.hint ? '<p class="qhint">' + esc(q.hint) + '</p>' : "") +
+      '<h2>' + esc(q.q) + '</h2>' + (q.hint ? Buddy.say(state.qi % 2 ? "oimo" : "mallow", esc(q.hint), { size: 48 }) : "") +
       body +
       '<div class="row end"><button class="btn link" id="back">もどる</button>' +
       (q.type !== "single" ? '<button class="btn" id="next">次へ</button>' : "") + '</div>' +
@@ -383,7 +396,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '<div class="card">' +
       '<span class="qlabel">質問 ' + total + ' / ' + total + '</span>' +
       '<h2>1か月の収支を入れてね</h2>' +
-      '<p class="qhint">' + who + 'の1か月分を、この15項目で入れてね。空欄は0円として計算するよ。</p>' +
+      Buddy.say("oimo", who + "の1か月分を、この15項目で入れてね。空欄は0円として計算するよ。", { size: 52 }) +
       '<details class="paste"><summary>コピーした集計をまとめて貼り付ける</summary>' +
       '<p class="muted">家計簿ケンティーの「集計」で「集計をコピーする」を押して、下に貼り付けてね。スプレッドシートから「項目名」と「金額」の2列をコピーして貼ってもOK。</p>' +
       '<textarea id="pastebox" placeholder="ここに貼り付け"></textarea>' +
@@ -488,6 +501,8 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '<div class="card">' +
       '<span class="qlabel">あなたの家計の現在地</span>' +
       '<h2>' + (d.cut > 0 ? '見直すと、毎月の余剰資金を <span class="num">' + yen(d.cut) + '</span> 増やせそう' : '支出は目安の範囲に収まってるよ') + '</h2>' +
+      (d.cut > 0 ? Buddy.say("oimo", "我慢じゃなくて、仕組みで減らせるところを見つけたよ。下で一緒に見ていこう！", { size: 56, mood: "happy" })
+        : Buddy.say("mallow", "もう十分がんばってるね！残りは、使い道を考える番だよ。", { size: 52, mood: "happy" })) +
       (d.fee > 0 && d.cut > 0 ? '<div class="notice">' + (d.cut >= d.fee ? '見直し額は月' + yen(d.cut) + '。作りたいお金（月' + yen(d.fee) + '）に<b>見直しだけで届く</b>計算だよ。' : '見直し額は月' + yen(d.cut) + 'で、作りたいお金（月' + yen(d.fee) + '）の <b class="num">' + Math.round(d.cut / d.fee * 100) + '%</b> に届く計算だよ。') + '</div>' : "") +
       '<div class="chips">' + profile.map(function (p) { return '<span class="chip">' + esc(p) + '</span>'; }).join("") + '</div>' +
       '<div class="kpis">' +
@@ -516,7 +531,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '</div>' +
 
       '<div class="card" id="next-card"><span class="qlabel">次にやること</span><h2>まだ見直せそうなところ</h2>' +
-      '<p class="qhint">' + (d.done.length || d.keep.length ? '見直し済み（' + esc(d.done.join("・") || "なし") + '）と大切にしたい支出（' + esc(d.keep.join("・") || "なし") + '）は外してあるよ。' : '') + 'この中から、今日決められそうなものを1つ選んでね。</p>' +
+      Buddy.say("mallow", (d.done.length || d.keep.length ? '見直し済み（' + esc(d.done.join("・") || "なし") + '）と大切にしたい支出（' + esc(d.keep.join("・") || "なし") + '）は外してあるよ。' : '') + 'この中から、今日決められそうなものを<b>1つ</b>選んでね。', { size: 52 }) +
       (state.chosen != null && d.acts[state.chosen] ? (function (x) {
         return '<div class="commit"><span class="qlabel">今月のアクション</span><h3>' + esc(x.title) + '</h3><p><b>最初の一歩：</b>' + esc(x.step) + '</p>' + (x.gain ? '<p class="muted num">効果の目安：月' + yen(x.gain) + '</p>' : "") +
           '<div class="row"><button class="btn" id="copy">コピーする</button><button class="btn link" id="unchoose">選び直す</button></div><span class="muted" id="copied" hidden>コピーしたよ</span></div>';

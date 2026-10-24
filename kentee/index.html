@@ -62,7 +62,8 @@ p { margin: 0; }
 /* ヘッダー */
 .top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 10px; }
 .top-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.brand { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: 0.8rem; letter-spacing: 0.06em; }
+.brand { font-family: var(--font-display); font-weight: 700; color: var(--gold); font-size: 0.85rem; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; }
+.brand .chara { animation: none; }
 .month { display: flex; align-items: center; gap: 4px; }
 .month button { font: inherit; background: none; border: none; color: var(--accent); font-size: 1.2rem; padding: 2px 10px; cursor: pointer; border-radius: 8px; }
 .month b { font-family: var(--font-display); font-size: 1.05rem; min-width: 7.5em; text-align: center; }
@@ -70,7 +71,7 @@ p { margin: 0; }
 /* 本体 */
 main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 16px calc(110px + env(safe-area-inset-bottom, 0px)); }
 .screen { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .sample-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 0.85rem; padding: 10px 14px; border-radius: 12px; background: var(--gold-soft); }
 .sample-bar b { color: var(--gold); }
 
@@ -176,6 +177,18 @@ a { color: var(--accent); font-weight: 700; }
 
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(90px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: 0.88rem; z-index: 20; max-width: calc(100% - 32px); }
 .disclaimer { font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+/* キャラクター（おイモくん・マシュマロくん） */
+.buddy { display: flex; align-items: flex-end; gap: 10px; }
+.buddy.right { flex-direction: row-reverse; }
+.buddy .chara { flex: none; }
+.bubble { position: relative; min-width: 0; background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.6; }
+.buddy.right .bubble { border-radius: 18px 18px 6px 18px; }
+.bubble b { color: var(--gold); }
+.chara { animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.buddy:nth-child(even) .chara { animation-delay: -1.6s; }
+@keyframes bob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.pair { display: flex; justify-content: center; align-items: flex-end; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { .chara { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 @media (max-width: 380px) { .sum .v { font-size: 1rem; } .item { grid-template-columns: 1fr 96px auto; } }
 </style>
@@ -183,7 +196,7 @@ a { color: var(--accent); font-weight: 700; }
 </head>
 <body>
 <header class="top"><div class="top-in">
-  <span class="brand">家計簿ケンティー</span>
+  <span class="brand"><span id="brandIcon" aria-hidden="true"></span>家計簿ケンティー</span>
   <div class="month"><button id="mPrev" aria-label="前の月">‹</button><b id="mLabel" class="num"></b><button id="mNext" aria-label="次の月">›</button></div>
 </div></header>
 <main><div class="screen" id="app"></div></main>
@@ -195,6 +208,7 @@ a { color: var(--accent); font-weight: 700; }
   <button class="tab" data-tab="data"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>データ</button>
 </div></nav>
 
+<script src="buddy.js"></script>
 <script>
 (function () {
   "use strict";
@@ -256,11 +270,19 @@ a { color: var(--accent); font-weight: 700; }
   }
   function sampleBar() {
     if (!state.sample) return "";
-    return '<div class="sample-bar"><span><b>サンプル表示中</b>　架空の家計簿だよ。触って試してね</span><button class="btn small orange" id="clearSample">自分の記録を始める</button></div>';
+    return '<div class="sample-bar"><span style="display:flex;align-items:center;gap:8px">' + Buddy.mallow(36, "happy") + '<span><b>サンプル表示中</b>　架空の家計簿だよ。触って試してね</span></span><button class="btn small orange" id="clearSample">自分の記録を始める</button></div>';
   }
   function ymLabel(ym) { var p = ym.split("-"); return p[0] + "年" + (+p[1]) + "月"; }
 
   // ---- ホーム ----
+  function homeBuddy(list, rest) {
+    var isThisMonth = state.ym === today().slice(0, 7), todayCount = list.filter(function (e) { return e.date === today(); }).length;
+    if (!list.length) return Buddy.say("oimo", "はじめまして、おイモくんだよ。<br>まずは今日使ったお金を1つ記録してみよう！", { mood: "happy" });
+    if (rest < 0) return Buddy.say("oimo", "今月は支出が収入を <b>" + yen(-rest) + "</b> こえてるよ。集計で浪費をのぞいてみよう。", { mood: "think" });
+    if (isThisMonth && !todayCount) return Buddy.say("oimo", "今日の記録はまだだよ。レシートでも手入力でもOK！", { mood: "normal" });
+    if (isThisMonth) return Buddy.say("oimo", "今日も記録できたね！今月は <b>" + yen(rest) + "</b> 残ってるよ。", { mood: "happy" });
+    return Buddy.say("oimo", ymLabel(state.ym) + "は <b>" + yen(rest) + "</b> 残せたよ。コツコツえらい！", { mood: "happy" });
+  }
   function renderHome() {
     var list = monthEntries(state.ym), t = totals(list), rest = t.inc - t.exp;
     var days = {};
@@ -271,11 +293,12 @@ a { color: var(--accent); font-weight: 700; }
       '<div><span class="l">収入</span><span class="v num">' + yen(t.inc) + '</span></div>' +
       '<div><span class="l">支出</span><span class="v num">' + yen(t.exp) + '</span></div>' +
       '<div><span class="l">手元に残る</span><span class="v num ' + (rest < 0 ? "minus" : "rest") + '">' + yen(rest) + '</span></div></div></div>' +
+      homeBuddy(list, rest) +
       '<div class="quick">' +
       '<button class="qbtn cam" id="goCam"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>レシートをAIで読む<small>自分のAIで読み取って貼るだけ</small></button>' +
       '<button class="qbtn" id="goAdd"><svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>手で入れる<small>現金・振込・収入など</small></button></div>' +
       '<div class="card"><div class="row between"><h2>明細</h2><span class="muted num">' + list.length + '件</span></div>';
-    if (!keys.length) html += '<p class="empty">この月の記録はまだないよ。<br>下の「記録」かレシート撮影から始めてね。</p>';
+    if (!keys.length) html += '<div class="empty"><div class="pair">' + Buddy.mallow(64, "sleep") + '</div><p>この月の記録はまだないよ。<br>下の「記録」から始めてね。</p></div>';
     keys.forEach(function (k) {
       var dayExp = days[k].reduce(function (s, e) { return s + (e.type === "expense" ? e.amount : 0); }, 0);
       html += '<div class="day"><div class="day-h"><span>' + md(k) + '</span><span class="num">支出 ' + yen(dayExp) + '</span></div>';
@@ -398,7 +421,7 @@ a { color: var(--accent); font-weight: 700; }
     if (!r) { state.tab = "home"; return render(); }
     if (r.status === "paste") {
       app.innerHTML = '<div class="card"><h2>レシートをAIで読み取る</h2>' +
-        '<p>ふだん使っている生成AI（ChatGPT・Gemini・Claudeなど）で読み取って、その回答をここに貼るだけ。写真はこのアプリには送られないよ。</p>' +
+        Buddy.say("mallow", "ふだん使っている生成AI（ChatGPT・Gemini・Claudeなど）で読み取って、その回答をここに貼るだけ。写真はこのアプリには送られないよ。", { size: 52 }) +
         '<ol class="steps"><li><b>指示文をコピー</b>して、AIアプリに貼る</li><li>同じメッセージにレシートの写真をつけて送る</li><li>AIの回答をコピーして、下に貼る</li></ol>' +
         '<button class="btn ghost full" id="pCopy">① 読み取り用の指示文をコピー</button>' +
         '<details><summary class="muted">指示文の中身を見る</summary><pre class="out" id="copyOut">' + esc(AI_PROMPT) + '</pre></details>' +
@@ -478,7 +501,12 @@ a { color: var(--accent); font-weight: 700; }
       '<div class="card"><h2>消費・浪費・投資</h2><div class="tri">' + TAG_LIST.map(function (tg) {
         var v = list.filter(function (e) { return e.type === "expense" && tagOf(e) === tg[0]; }).reduce(function (s, e) { return s + e.amount; }, 0);
         return '<div><span class="l">' + tg[0] + '</span><span class="v">' + yen(v) + '</span><span class="p num">' + (t.exp ? Math.round(v / t.exp * 100) : 0) + '%</span></div>';
-      }).join("") + '</div><p class="muted">浪費が多い項目から見直すと、我慢せずに減らしやすいよ。</p></div>' +
+      }).join("") + '</div>' + (function () {
+        var w = list.filter(function (e) { return e.type === "expense" && tagOf(e) === "浪費"; }).reduce(function (s, e) { return s + e.amount; }, 0), pw = t.exp ? Math.round(w / t.exp * 100) : 0;
+        if (!t.exp) return Buddy.say("oimo", "記録がたまったら、ここで使い方のクセが見えてくるよ。", { size: 52 });
+        return pw > 10 ? Buddy.say("oimo", "浪費が <b>" + pw + "%</b>。ここから見直すと、我慢せずに減らしやすいよ。", { size: 52, mood: "think" })
+          : Buddy.say("oimo", "浪費は <b>" + pw + "%</b>。いいバランスだね！", { size: 52, mood: "happy" });
+      })() + '</div>' +
       '<div class="card"><h2>15項目の集計をコピー</h2>' +
       '<p>この月の収入4項目・支出15項目の合計を、スプレッドシートにそのまま貼れる形でコピーするよ。' + (sp.length ? '特別な支出 ' + sp.length + '件（' + yen(sp.reduce(function (s, e) { return s + e.amount; }, 0)) + '）は外してある。' : '') + '</p>' +
       '<button class="btn orange full" id="copyDiag">集計をコピーする</button>' +
@@ -513,6 +541,7 @@ a { color: var(--accent); font-weight: 700; }
   }
   function renderReport() {
     app.innerHTML = sampleBar() + '<div class="card"><h2>記録をシェアする</h2>' +
+      Buddy.say("mallow", "今日もおつかれさま！記録をまとめて、家族や仲間にシェアしよう。", { size: 52, mood: "happy" }) +
       '<div class="row"><div class="fld" style="flex:1;min-width:130px"><label class="lbl" for="rpFrom">いつから</label><input type="date" id="rpFrom" value="' + state.repFrom + '"></div>' +
       '<div class="fld" style="flex:1;min-width:130px"><label class="lbl" for="rpTo">いつまで</label><input type="date" id="rpTo" value="' + state.repTo + '"></div></div>' +
       '<div class="row"><button class="btn small ghost" data-range="0">今日</button><button class="btn small ghost" data-range="1">昨日から</button><button class="btn small ghost" data-range="2">3日分</button></div>' +
@@ -620,6 +649,7 @@ a { color: var(--accent); font-weight: 700; }
     };
   });
   function shiftMonth(n) { var p = state.ym.split("-"); var d = new Date(+p[0], +p[1] - 1 + n, 1); state.ym = d.getFullYear() + "-" + pad(d.getMonth() + 1); render(); }
+  var bi = document.getElementById("brandIcon"); if (bi) bi.innerHTML = Buddy.oimo(34, "happy");
   document.getElementById("mPrev").onclick = function () { shiftMonth(-1); };
   document.getElementById("mNext").onclick = function () { shiftMonth(1); };
   render();
