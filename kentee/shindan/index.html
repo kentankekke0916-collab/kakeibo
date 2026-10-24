@@ -195,7 +195,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
     { id: "invest", q: "毎月の先取り貯金・積立投資はいくら？", hint: "NISA・iDeCo・先取り貯金の合計。支出には入れず、余剰資金の中から出している前提だよ", type: "number", unit: "円/月" },
     { id: "debt", q: "今ある借入をすべて選んでね", type: "multi", opts: ["リボ払い", "カードローン", "奨学金", "車のローン", "なし"] },
     { id: "goals", q: "これから叶えたいことは？", hint: "いくつでも選んでOK", type: "multi", opts: ["教育費の準備", "住宅購入", "老後資金", "旅行・趣味", "転職・起業", "まだ決まっていない"] },
-    { id: "done", q: "もう見直し済みの項目は？", hint: "すでに見直した項目は、今回の改善候補から外すよ", type: "multi", opts: EXPENSE.filter(function (k) { return k !== "税・社会保障"; }).concat(["まだない"]) },
+    { id: "done", q: "既に見直し済みの項目は？", hint: "すでに見直した項目は、今回の改善候補から外すよ", type: "multi", opts: EXPENSE.filter(function (k) { return k !== "税・社会保障"; }).concat(["まだない"]) },
     { id: "keep", q: "大切にしたい支出は？", hint: "ここは削る候補から外すよ。罪悪感なく使っていいお金だからね", type: "multi", opts: EXPENSE.filter(function (k) { return k !== "税・社会保障"; }).concat(["特にない"]) },
     { id: "fee", q: "毎月あといくら、自由に使えるお金を作りたい？", hint: "見直しでその金額に届くかを計算するよ。決まっていなければ0のままでOK", type: "number", unit: "円/月" },
     { id: "scope", q: "このあと入れる収支は誰の分？", hint: "パートナーの分も合わせて入れる人は「世帯の合計」を選んでね", type: "single", opts: ["自分の分だけ", "世帯の合計"], when: function (a) { return a.family !== "ひとり暮らし・独身"; } }
