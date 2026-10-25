@@ -2,6 +2,8 @@
 
 GitHub Pagesで公開している4つのアプリ。どれもデータは端末のブラウザ内だけに保存し、サーバーには送らない。
 
+一般版（/kentee/ と /kentee/shindan/）は検索に出す設定でOGP画像（ogp.png）あり。SHEmoney版はnoindex。
+
 利用状況はGoatCounterで計測（家計簿は kakeibo-navi、診断は nobishiro-navi）。送るのはページ表示と操作名（ev/original/… または ev/shemoney/…）だけで、金額や入力内容は送らない。
 
 | フォルダ | アプリ | 公開URL |
