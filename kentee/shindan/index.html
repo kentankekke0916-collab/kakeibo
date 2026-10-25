@@ -169,6 +169,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
 .buddy .chara { flex: none; }
 .bubble { position: relative; min-width: 0; background: var(--bg); border: 1.5px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.6; }
 .buddy.right .bubble { border-radius: 18px 18px 6px 18px; }
+.note-link { display: block; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--gold); padding: 10px; }
 .bubble b { color: var(--gold); }
 .chara { animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
 .cover-chars { display: flex; align-items: flex-end; justify-content: center; gap: 2px; padding-bottom: 14px; }
@@ -189,6 +190,8 @@ tr.total td { font-weight: 700; border-bottom: none; }
   function track(name) {
     try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "ev/" + EDITION + "/" + name, title: name, event: true }); } catch (e) {}
   }
+  // noteの紹介記事へのリンク。どこで押されたかを data-note の値で数える
+  document.addEventListener("click", function (e) { var a = e.target.closest && e.target.closest("a[data-note]"); if (a) track("note-link-" + a.getAttribute("data-note")); });
 
   // ---- マスタ（家計簿ケンティーと同じ並び） ----
   var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
@@ -307,6 +310,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
       (hasDraft ? '<button class="btn link" id="reset">最初からやり直す</button>' : "") +
       '<p class="privacy">計算はすべてこの端末のブラウザの中で行われ、入力した数字がどこかに送られることはありません。改善のために、開いた回数と押したボタンの種類だけを匿名で数えています。</p>' +
       '<p class="disclaimer">' + DISCLAIMER + '</p>' +
+      '<a class="note-link" data-note="cover" href="https://note.com/clever_briony703/n/na708bbf896fc" target="_blank" rel="noopener">このツールの使い方（note）</a>' +
       '</div>';
     document.getElementById("start").onclick = function () { track("diagnosis-start"); state.sample = false; state.screen = "q"; state.qi = 0; render(); };
     document.getElementById("sample").onclick = function () { track("sample-view");
@@ -558,6 +562,7 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '</div>' +
 
       '<p class="disclaimer">' + DISCLAIMER + '</p>' +
+      '<a class="note-link" data-note="result" href="https://note.com/clever_briony703/n/na708bbf896fc" target="_blank" rel="noopener">このツールの使い方（note）</a>' +
       '<div class="row"><button class="btn ghost" id="edit">' + (state.sample ? "自分の数字で診断する" : "数字を直す") + '</button><button class="btn link" id="home">はじめにもどる</button></div>';
 
     app.querySelectorAll(".pick").forEach(function (b) { b.onclick = function () { track("action-pick"); state.chosen = Number(b.dataset.i); renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); }; });

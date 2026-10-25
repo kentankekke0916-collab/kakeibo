@@ -191,6 +191,7 @@ a { color: var(--accent); font-weight: 700; }
 .buddy .chara { flex: none; }
 .bubble { position: relative; min-width: 0; background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 10px 14px; font-size: 0.9rem; line-height: 1.6; }
 .buddy.right .bubble { border-radius: 18px 18px 6px 18px; }
+.note-link { display: block; text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--gold); padding: 10px; }
 .bubble b { color: var(--gold); }
 .chara { animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
 .buddy:nth-child(even) .chara { animation-delay: -1.6s; }
@@ -225,6 +226,8 @@ a { color: var(--accent); font-weight: 700; }
   function track(name) {
     try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "ev/" + EDITION + "/" + name, title: name, event: true }); } catch (e) {}
   }
+  // noteの紹介記事へのリンク。どこで押されたかを data-note の値で数える
+  document.addEventListener("click", function (e) { var a = e.target.closest && e.target.closest("a[data-note]"); if (a) track("note-link-" + a.getAttribute("data-note")); });
   var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
   var EXPENSE = ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "教養・教育", "健康・医療", "水道光熱費", "通信費", "住宅（家賃など）", "保険", "自動車", "税・社会保障", "その他"];
   var SHORT = { "給与（手取り）": "給与", "事業（副業）収入（手取り）": "副業", "住宅（家賃など）": "住宅" };
@@ -603,7 +606,8 @@ a { color: var(--accent); font-weight: 700; }
     return out;
   }
   function renderData() {
-    app.innerHTML = '<div class="card"><h2>バックアップ</h2>' +
+    app.innerHTML = '<div class="card"><h2>使い方ガイド</h2><p>ホーム画面への追加のしかたや、レシートをAIで読む流れはnoteにまとめてあるよ。</p>' + '<a class="note-link" data-note="data" href="https://note.com/clever_briony703/n/na708bbf896fc" target="_blank" rel="noopener">noteの使い方ガイドを読む</a>' + '</div>' +
+      '<div class="card"><h2>バックアップ</h2>' +
       '<p>家計簿のデータはこの端末の中だけに保存していて、どこにも送ってないよ。改善のために、開いた回数と押したボタンの種類だけは匿名で数えてるよ。機種変更やアプリの削除で消えるので、月に1回はバックアップしておいてね。</p>' +
       '<button class="btn full" id="csvFile">バックアップをファイルに保存する（' + state.entries.length + '件）</button>' +
       '<button class="btn ghost full" id="csvCopy">バックアップをコピーする</button>' +

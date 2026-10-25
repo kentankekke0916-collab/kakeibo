@@ -1,6 +1,6 @@
 // オフラインでも開けるように、アプリ本体をキャッシュする。ファイルを更新したら VERSION を上げる
 const PREFIX = "kentee-nobishiro-";
-const VERSION = PREFIX + "v6";
+const VERSION = PREFIX + "v7";
 const FILES = ["./", "../buddy.js", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
