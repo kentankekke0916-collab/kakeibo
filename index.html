@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="家計簿">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="robots" content="noindex">
+<script data-goatcounter="https://kakeibo-navi.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -198,6 +199,11 @@ a { color: var(--accent); font-weight: 700; }
 <script>
 (function () {
   "use strict";
+  // 使用状況の計測（GoatCounter）。計測タグがないページでは何もしない。送るのは操作名だけで、金額や入力内容は送らない
+  var EDITION = "shemoney";
+  function track(name) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "ev/" + EDITION + "/" + name, title: name, event: true }); } catch (e) {}
+  }
   var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
   var EXPENSE = ["食費", "日用品", "趣味・娯楽", "交際費", "交通費", "衣服・美容", "教養・教育", "健康・医療", "水道光熱費", "通信費", "住宅（家賃など）", "保険", "自動車", "税・社会保障", "その他"];
   var SHORT = { "給与（手取り）": "給与", "事業（副業）収入（手取り）": "副業", "住宅（家賃など）": "住宅" };
@@ -325,7 +331,7 @@ a { color: var(--accent); font-weight: 700; }
     app.querySelectorAll(".chip").forEach(function (b) { b.onclick = function () { readForm(); f.cat = b.getAttribute("data-cat"); renderForm(); }; });
     app.querySelectorAll(".tagseg button").forEach(function (b) { b.onclick = function () { readForm(); f.tag = b.getAttribute("data-tag"); renderForm(); }; });
     bind("fCam", openReceipt);
-    app.querySelectorAll("[data-u]").forEach(function (b) { b.onclick = function () { var u = usuals()[+b.getAttribute("data-u")]; readForm(); f.type = "expense"; f.memo = u.memo; f.cat = u.cat; f.tag = u.tag; renderForm(); var a = document.getElementById("fAmt"); if (a) a.focus(); }; });
+    app.querySelectorAll("[data-u]").forEach(function (b) { b.onclick = function () { track("usual-tap"); var u = usuals()[+b.getAttribute("data-u")]; readForm(); f.type = "expense"; f.memo = u.memo; f.cat = u.cat; f.tag = u.tag; renderForm(); var a = document.getElementById("fAmt"); if (a) a.focus(); }; });
     bind("fBack", function () { state.edit = null; state.form = null; state.tab = "home"; render(); });
     bind("fDel", function () {
       var c = document.getElementById("delConfirm");
@@ -488,7 +494,7 @@ a { color: var(--accent); font-weight: 700; }
       '<details><summary class="muted">コピーされる中身を見る</summary><pre class="out" id="copyOut">' + esc(diagText(state.ym)) + '</pre></details>' +
       '<p class="muted">月の途中だと金額が少なめに出るので、診断は月末か、1か月分そろってからがおすすめ。</p></div>';
     app.innerHTML = html;
-    var gd = document.getElementById("goDiag"); if (gd) gd.addEventListener("click", function () { handoff("she-handoff"); });
+    var gd = document.getElementById("goDiag"); if (gd) gd.addEventListener("click", function () { track("diagnosis-handoff"); handoff("she-handoff"); });
     bind("copyDiag", function () { handoff("she-handoff"); copy(diagText(state.ym), "診断用にコピーしたよ。診断の貼り付け欄に貼ってね"); });
   }
 
@@ -562,7 +568,7 @@ a { color: var(--accent); font-weight: 700; }
   }
   function renderData() {
     app.innerHTML = '<div class="card"><h2>バックアップ</h2>' +
-      '<p>家計簿のデータはこの端末の中だけに保存していて、どこにも送ってないよ。機種変更やアプリの削除で消えるので、月に1回はバックアップしておいてね。</p>' +
+      '<p>家計簿のデータはこの端末の中だけに保存していて、どこにも送ってないよ。改善のために、開いた回数と押したボタンの種類だけは匿名で数えてるよ。機種変更やアプリの削除で消えるので、月に1回はバックアップしておいてね。</p>' +
       '<button class="btn full" id="csvFile">バックアップをファイルに保存する（' + state.entries.length + '件）</button>' +
       '<button class="btn ghost full" id="csvCopy">バックアップをコピーする</button>' +
       '<details><summary class="muted">バックアップの中身（CSV）を見る</summary><pre class="out" id="copyOut">' + esc(toCSV()) + '</pre></details>' +
@@ -593,7 +599,14 @@ a { color: var(--accent); font-weight: 700; }
     bind("wipe2", function () { state.entries = []; state.sample = false; save(); toast("すべて消したよ"); renderData(); });
   }
 
-  function bind(id, fn) { var el = document.getElementById(id); if (el) el.onclick = fn; }
+  // ボタンのidと、計測するときの操作名
+  var EV = {
+    goAdd: "record-start", fSave: "record-save", fDel2: "record-delete",
+    goCam: "receipt-start", fCam: "receipt-start", pCopy: "receipt-prompt-copy", pRead: "receipt-read", rSave: "receipt-save", rCancel: "receipt-cancel",
+    copyDiag: "summary-copy", rpCopy: "report-copy", rpShare: "report-share",
+    csvFile: "backup-file", csvCopy: "backup-copy", csvLoad: "backup-load", wipe2: "data-wipe", clearSample: "sample-clear"
+  };
+  function bind(id, fn) { var el = document.getElementById(id); if (el) el.onclick = function (e) { if (EV[id]) track(EV[id]); return fn.call(this, e); }; }
 
   function render() {
     document.getElementById("mLabel").textContent = ymLabel(state.ym);
@@ -615,6 +628,7 @@ a { color: var(--accent); font-weight: 700; }
   document.querySelectorAll(".tab").forEach(function (t) {
     t.onclick = function () {
       var to = t.getAttribute("data-tab");
+      track("tab-" + to);
       if (to === "add") { openForm(null); return; }
       state.form = null; state.edit = null; state.tab = to; render();
     };

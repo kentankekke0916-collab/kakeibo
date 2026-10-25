@@ -8,6 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="伸びしろ診断">
 <meta name="robots" content="noindex">
+<script data-goatcounter="https://nobishiro-navi.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -176,6 +177,11 @@ tr.total td { font-weight: 700; border-bottom: none; }
 <script>
 (function () {
   "use strict";
+  // 使用状況の計測（GoatCounter）。計測タグがないページでは何もしない。送るのは操作名だけで、金額や入力内容は送らない
+  var EDITION = "original";
+  function track(name) {
+    try { if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "ev/" + EDITION + "/" + name, title: name, event: true }); } catch (e) {}
+  }
 
   // ---- マスタ（家計簿ケンティーと同じ並び） ----
   var INCOME = ["給与（手取り）", "事業（副業）収入（手取り）", "不動産所得", "その他収入"];
@@ -292,17 +298,17 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '<div class="row"><button class="btn" id="start">' + (hasDraft ? "続きからはじめる" : "はじめる") + '</button>' +
       '<button class="btn ghost" id="sample">サンプルで結果を見る</button></div>' +
       (hasDraft ? '<button class="btn link" id="reset">最初からやり直す</button>' : "") +
-      '<p class="privacy">計算はすべてこの端末のブラウザの中で行われ、入力した数字がどこかに送られることはありません。</p>' +
+      '<p class="privacy">計算はすべてこの端末のブラウザの中で行われ、入力した数字がどこかに送られることはありません。改善のために、開いた回数と押したボタンの種類だけを匿名で数えています。</p>' +
       '<p class="disclaimer">' + DISCLAIMER + '</p>' +
       '</div>';
-    document.getElementById("start").onclick = function () { state.sample = false; state.screen = "q"; state.qi = 0; render(); };
-    document.getElementById("sample").onclick = function () {
+    document.getElementById("start").onclick = function () { track("diagnosis-start"); state.sample = false; state.screen = "q"; state.qi = 0; render(); };
+    document.getElementById("sample").onclick = function () { track("sample-view");
       state.sample = true; state.answers = JSON.parse(JSON.stringify(SAMPLE.answers));
       state.income = Object.assign({}, SAMPLE.income); state.expense = Object.assign({}, SAMPLE.expense);
       state.chosen = null; state.screen = "result"; render();
     };
     var r = document.getElementById("reset");
-    if (r) r.onclick = function () { state.answers = {}; state.income = {}; state.expense = {}; try { localStorage.removeItem("kentee-nobishiro-draft"); } catch (e) {} render(); };
+    if (r) r.onclick = function () { track("draft-reset"); state.answers = {}; state.income = {}; state.expense = {}; try { localStorage.removeItem("kentee-nobishiro-draft"); } catch (e) {} render(); };
   }
 
   // ---- 画面: 質問 ----
@@ -413,20 +419,20 @@ tr.total td { font-weight: 700; border-bottom: none; }
       inp.addEventListener("input", function () { state[inp.dataset.b][inp.dataset.k] = Math.max(0, Number(inp.value) || 0); refresh(); save(); });
     });
     var fa = document.getElementById("fromapp");
-    if (fa) fa.onclick = function () {
+    if (fa) fa.onclick = function () { track("ledger-from-app");
       var r = parsePaste(handoff.text);
       if (!r.found) return renderLedger({ warn: true, text: "うまく読み込めなかったよ。家計簿でもう一度「診断に渡す」を押してみてね。" });
       state.income = r.income; state.expense = r.expense; save();
       renderLedger({ text: handoff.label + "の集計を読み込んだよ。数字が合っているか確認してね。" });
     };
-    document.getElementById("readpaste").onclick = function () {
+    document.getElementById("readpaste").onclick = function () { track("ledger-paste");
       var r = parsePaste(document.getElementById("pastebox").value);
       if (!r.found) return renderLedger({ warn: true, text: "数字が読み取れなかったよ。項目名の列と金額の列が両方入るように範囲を選んでコピーしてみてね。" });
       state.income = r.income; state.expense = r.expense; save();
       renderLedger({ text: r.found + "項目を読み込んだよ" + (r.blocks.length > 1 ? "（" + r.blocks.join("・") + "の合計）" : "") + "。数字が合っているか確認してね。" });
     };
     document.getElementById("back").onclick = function () { state.screen = "q"; state.qi = visibleQs().length - 1; render(); };
-    document.getElementById("go").onclick = function () {
+    document.getElementById("go").onclick = function () { track("diagnosis-done");
       if (sum(state.income) <= 0) return renderLedger({ warn: true, text: "収入（手取り）を入れてね。診断はこの金額を基準に計算するよ。" });
       state.chosen = null; state.screen = "result"; render(); window.scrollTo(0, 0);
     };
@@ -547,21 +553,21 @@ tr.total td { font-weight: 700; border-bottom: none; }
       '<p class="disclaimer">' + DISCLAIMER + '</p>' +
       '<div class="row"><button class="btn ghost" id="edit">' + (state.sample ? "自分の数字で診断する" : "数字を直す") + '</button><button class="btn link" id="home">はじめにもどる</button></div>';
 
-    app.querySelectorAll(".pick").forEach(function (b) { b.onclick = function () { state.chosen = Number(b.dataset.i); renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); }; });
+    app.querySelectorAll(".pick").forEach(function (b) { b.onclick = function () { track("action-pick"); state.chosen = Number(b.dataset.i); renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); }; });
     var un = document.getElementById("unchoose"); if (un) un.onclick = function () { state.chosen = null; renderResult(); document.getElementById("next-card").scrollIntoView({ block: "start" }); };
     var cp = document.getElementById("copy");
-    if (cp) cp.onclick = function () {
+    if (cp) cp.onclick = function () { track("action-copy");
       var x = d.acts[state.chosen];
       var text = "【今月のアクション】" + x.title + "\n最初の一歩：" + x.step + (x.gain ? "\n削減額の目安：月" + yen(x.gain) : "");
       function ok() { document.getElementById("copied").hidden = false; }
       try { navigator.clipboard.writeText(text).then(ok, function () { ok(); }); } catch (e) {}
     };
-    document.getElementById("edit").onclick = function () {
+    document.getElementById("edit").onclick = function () { track("result-edit");
       if (state.sample) { state.sample = false; state.answers = {}; state.income = {}; state.expense = {}; state.screen = "q"; state.qi = 0; try { var s = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (s && s.answers) { state.answers = s.answers; state.income = s.income || {}; state.expense = s.expense || {}; } } catch (e) {} }
       else state.screen = "ledger";
       render(); window.scrollTo(0, 0);
     };
-    document.getElementById("home").onclick = function () { if (state.sample) { state.sample = false; state.answers = {}; state.income = {}; state.expense = {}; try { var s = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (s && s.answers) { state.answers = s.answers; state.income = s.income || {}; state.expense = s.expense || {}; } } catch (e) {} } state.screen = "intro"; render(); window.scrollTo(0, 0); };
+    document.getElementById("home").onclick = function () { track("result-home"); if (state.sample) { state.sample = false; state.answers = {}; state.income = {}; state.expense = {}; try { var s = JSON.parse(localStorage.getItem("kentee-nobishiro-draft") || "null"); if (s && s.answers) { state.answers = s.answers; state.income = s.income || {}; state.expense = s.expense || {}; } } catch (e) {} } state.screen = "intro"; render(); window.scrollTo(0, 0); };
   }
 
   function render() {
